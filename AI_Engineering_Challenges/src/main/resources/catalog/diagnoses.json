@@ -1,0 +1,26 @@
+[
+  { "code": "K02.1", "description": "Caries of dentine", "claim_types": ["DENTAL"] },
+  { "code": "K04.0", "description": "Pulpitis", "claim_types": ["DENTAL"] },
+  { "code": "K05.1", "description": "Chronic gingivitis", "claim_types": ["DENTAL"] },
+  { "code": "K08.1", "description": "Loss of teeth due to accident, extraction or local periodontal disease", "claim_types": ["DENTAL"] },
+  { "code": "K01.1", "description": "Impacted teeth", "claim_types": ["DENTAL"] },
+
+  { "code": "J06.9", "description": "Acute upper respiratory infection, unspecified", "claim_types": ["OUTPATIENT"] },
+  { "code": "J02.9", "description": "Acute pharyngitis, unspecified", "claim_types": ["OUTPATIENT"] },
+  { "code": "I10", "description": "Essential (primary) hypertension", "claim_types": ["OUTPATIENT"] },
+  { "code": "E11.9", "description": "Type 2 diabetes mellitus without complications", "claim_types": ["OUTPATIENT"] },
+  { "code": "M54.5", "description": "Low back pain", "claim_types": ["OUTPATIENT"] },
+  { "code": "N39.0", "description": "Urinary tract infection, site not specified", "claim_types": ["OUTPATIENT"] },
+  { "code": "H10.9", "description": "Conjunctivitis, unspecified", "claim_types": ["OUTPATIENT"] },
+
+  { "code": "J18.9", "description": "Pneumonia, unspecified", "claim_types": ["OUTPATIENT", "INPATIENT"] },
+  { "code": "M17.1", "description": "Other primary gonarthrosis", "claim_types": ["OUTPATIENT", "INPATIENT"] },
+
+  { "code": "K35.8", "description": "Acute appendicitis, other and unspecified", "claim_types": ["INPATIENT"] },
+  { "code": "K80.2", "description": "Calculus of gallbladder without cholecystitis", "claim_types": ["INPATIENT"] },
+  { "code": "I21.9", "description": "Acute myocardial infarction, unspecified", "claim_types": ["INPATIENT"] },
+  { "code": "I63.9", "description": "Cerebral infarction, unspecified", "claim_types": ["INPATIENT"] },
+  { "code": "S72.0", "description": "Fracture of neck of femur", "claim_types": ["INPATIENT"] },
+  { "code": "O80", "description": "Single spontaneous delivery", "claim_types": ["INPATIENT"] },
+  { "code": "O82", "description": "Single delivery by caesarean section", "claim_types": ["INPATIENT"] }
+]

@@ -1,0 +1,8 @@
+[
+  { "bundle_code": "P-1101", "components": ["P-1004", "P-1006", "P-1003"] },
+  { "bundle_code": "P-1102", "components": ["P-1005", "P-1006", "P-1001"] },
+  { "bundle_code": "P-1103", "components": ["P-1003", "P-1007"] },
+  { "bundle_code": "P-2101", "components": ["P-2006", "P-2004", "P-2005"] },
+  { "bundle_code": "P-2102", "components": ["P-2007", "P-2004", "P-2005"] },
+  { "bundle_code": "P-3101", "components": ["P-3003", "P-3004", "P-3005"] }
+]

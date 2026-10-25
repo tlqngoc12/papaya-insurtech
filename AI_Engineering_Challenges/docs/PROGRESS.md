@@ -7,7 +7,7 @@ Cập nhật lần cuối: 2026-10-25.
 | # | Task | Trạng thái | Commit |
 |---|------|------------|--------|
 | 01 | Skeleton Maven, CLI stub, limitations, ai-log | done | `eb2fc4b` |
-| 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | doing | |
+| 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | commit "Task 02" (mã điền ở lần cập nhật sau) |
 | 03 | Config (`fraud-config.json`, `ConfigLoader`) | todo | |
 | 04 | Đọc/ghi CSV và validate đầu vào (R11) | todo | |
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | todo | |
@@ -30,11 +30,11 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Task 02. Danh mục đã duyệt (2026-10-25). Đang tạo 4 file JSON, `CatalogLoader` và `CatalogLoaderTest`.
+Không có. Task 02 đã commit (17 test xanh: Main 4, CatalogLoader 7, Catalog 6). Chờ người dùng bảo bắt đầu Task 03.
 
 ## Việc tiếp theo
 
-1. Sau khi bản nháp danh mục được duyệt: tạo 4 file JSON, `CatalogLoader`, `CatalogLoaderTest`, rồi dừng chờ review Task 02.
+1. Điền mã commit Task 02 vào bảng trạng thái.
 2. Task 03: `fraud-config.json` (trọng số mục G, tham số rule) và `ConfigLoader`.
 3. Task 04: `ClaimCsvReader` / `ClaimCsvWriter` và validate R11.
 
@@ -70,6 +70,10 @@ Task 02. Danh mục đã duyệt (2026-10-25). Đang tạo 4 file JSON, `Catalog
   - PCI (P-2011) và coronary angiography (P-2010) giữ `surgical = false`. Ghi vào `limitations.md` (L6).
 - 2026-10-25: Task 02, sức chứa dải clustering: chọn **phương án 3**. 4 nhóm chứa claim trong dải: P-2009, P-2010, I21.9 (P-2010 + P-2001), O82 (P-2009 + P-2001).
 - 2026-10-25: Thứ tự commit: `.gitattributes` (đã có ở `d335972`), rồi `CLAUDE.md` + `PROGRESS.md` + `limitations.md`, rồi Task 02 chỉ gồm danh mục.
+- 2026-10-25: Task 02, thử phá có chủ ý 3 lần (giá P-2008, bỏ thành phần của P-2102 khỏi K80.2, thêm E11.9 + P-3003): cả 3 lần đều có test đỏ.
+  - Không sửa `CatalogLoaderTest` để đọc JSON thô, vì `Catalog.create` đã chặn lỗi với thông báo chính xác và `CatalogTest` đã kiểm tra từng loại lỗi.
+  - Không thêm snapshot test. Ghi lỗ hổng "tráo cặp" vào `limitations.md` (L7).
+  - Commit Task 02 gồm danh mục, test, `limitations.md` và `PROGRESS.md`.
 
 ## Ràng buộc cho các task sau
 

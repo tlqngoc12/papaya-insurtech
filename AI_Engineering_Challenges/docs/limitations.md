@@ -38,3 +38,9 @@ Trường hợp tách các thành phần của một bundle ra nhiều claim cù
 *Nguồn: Task 02, R7.*
 
 Rule weekend anomaly dựa vào cờ `surgical` trong `procedures.json`. Cờ này do mình tự gán, không theo một chuẩn phân loại thủ thuật nào. Cụ thể, PCI (P-2011) và coronary angiography (P-2010) là thủ thuật can thiệp qua da nên được để `surgical = false`. Một hệ thống thật cần một nguồn phân loại thủ thuật chính thức, và kết quả weekend anomaly sẽ thay đổi theo định nghĩa đó.
+
+## L7. Tính đúng lâm sàng của whitelist không được test tự động
+
+*Nguồn: Task 02, thử phá test có chủ ý.*
+
+Tính đúng lâm sàng của whitelist do tác giả review thủ công qua git diff; test chỉ bắt lỗi cấu trúc và claim_type. Ví dụ, nếu tráo một cặp đúng lấy một cặp sai về y khoa nhưng cùng claim_type, số cặp vẫn là 64 và không test nào đỏ.
