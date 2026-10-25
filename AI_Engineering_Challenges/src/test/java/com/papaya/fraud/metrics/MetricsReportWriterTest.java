@@ -1,6 +1,7 @@
 package com.papaya.fraud.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.papaya.fraud.metrics.MetricsResult.GroupRecall;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 class MetricsReportWriterTest {
 
-    private static final ReportContext CTX = new ReportContext("42", "data/tuning/claims.csv", "ab12", "config/x.json",
+    private static final ReportContext CTX = new ReportContext("42", "claims.csv", "ab12", "frozen-config.json",
             "cd34", 120, 350, 110, "../../docs/limitations.md");
 
     private static final MetricsResult RESULT = new MetricsResult(11, new ConfusionMatrix(3, 1, 1, 5),
@@ -62,7 +63,7 @@ class MetricsReportWriterTest {
 
     @Test
     void jsonCarriesNoTimingSoDifferentMeasurementsGiveTheSameBytes() {
-        ReportContext slow = new ReportContext("42", "data/tuning/claims.csv", "ab12", "config/x.json", "cd34", 9_999,
+        ReportContext slow = new ReportContext("42", "claims.csv", "ab12", "frozen-config.json", "cd34", 9_999,
                 8_888, 7_777, "../../docs/limitations.md");
         assertArrayEquals(MetricsReportWriter.jsonBytes(CTX, RESULT), MetricsReportWriter.jsonBytes(slow, RESULT));
         String json = new String(MetricsReportWriter.jsonBytes(CTX, RESULT), StandardCharsets.UTF_8);
@@ -70,12 +71,19 @@ class MetricsReportWriterTest {
     }
 
     @Test
-    void limitationsLinkIsRelativeOnTheSameRootAndAbsoluteAcrossRoots() {
-        String sameRoot = Evaluation.limitationsLink(Path.of("data", "tuning"));
-        assertTrue(sameRoot.equals("../../docs/limitations.md"), sameRoot);
-        Path other = Path.of(System.getProperty("java.io.tmpdir"));
-        String link = Evaluation.limitationsLink(other);
-        assertTrue(link.endsWith("docs/limitations.md"), link);
+    void jsonNamesInputsBySha256OnlyAndMarkdownByFileName() {
+        String json = new String(MetricsReportWriter.jsonBytes(CTX, RESULT), StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"claims_sha256\": \"ab12\"") && json.contains("\"config_sha256\": \"cd34\""), json);
+        assertTrue(!json.contains("claims_file") && !json.contains("config_file") && !json.contains("claims.csv"), json);
+        String md = new String(MetricsReportWriter.markdownBytes(CTX, RESULT), StandardCharsets.UTF_8);
+        assertTrue(md.contains("| Claims file | `claims.csv` |") && md.contains("| Config file | `frozen-config.json` |"));
+    }
+
+    @Test
+    void limitationsLinkIsRelativeInsideTheProjectAndNeverAnAbsolutePath() {
+        assertEquals("../../docs/limitations.md", Evaluation.limitationsLink(Path.of("reports", "heldout")));
+        String outside = Evaluation.limitationsLink(Path.of(System.getProperty("java.io.tmpdir")));
+        assertEquals("docs/limitations.md", outside, "outside the project: project-relative, no machine path");
     }
 
     @Test

@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 /**
  * Renders {@code metrics_report.md} (O4) and {@code metrics.json} from a {@link MetricsResult}. Pure functions of their
  * inputs: same result and context, same bytes ({@code \n}, UTF-8 without BOM). Every number comes from the result.
- * Only the markdown carries the measured timings; metrics.json is identical across runs on the same data.
+ * Only the markdown carries the measured timings; metrics.json is identical across runs on the same data. Neither
+ * contains a file path: inputs are named by file name (markdown) and SHA-256 (both).
  */
 public final class MetricsReportWriter {
 
@@ -58,9 +59,9 @@ public final class MetricsReportWriter {
         line(md, "| Item | Value |");
         line(md, "|---|---|");
         line(md, "| Seed | " + ctx.seed() + " |");
-        line(md, "| Claims file | `" + ctx.claimsFile() + "` |");
+        line(md, "| Claims file | `" + ctx.claimsFileName() + "` |");
         line(md, "| Claims SHA-256 | `" + ctx.claimsSha256() + "` |");
-        line(md, "| Config file | `" + ctx.configFile() + "` |");
+        line(md, "| Config file | `" + ctx.configFileName() + "` |");
         line(md, "| Config SHA-256 | `" + ctx.configSha256() + "` |");
         line(md, "| Threshold T | " + r.threshold() + " |");
         line(md, "| Claims | " + (c.fraud() + c.legit()) + " (" + c.fraud() + " fraud, " + c.legit() + " legit) |");
@@ -179,11 +180,10 @@ public final class MetricsReportWriter {
 
     static Map<String, Object> json(ReportContext ctx, MetricsResult r) {
         Map<String, Object> doc = new LinkedHashMap<>();
+        // Inputs are identified by content only: a path would differ between runs on the same data.
         Map<String, Object> inputs = new LinkedHashMap<>();
         inputs.put("seed", ctx.seed());
-        inputs.put("claims_file", ctx.claimsFile());
         inputs.put("claims_sha256", ctx.claimsSha256());
-        inputs.put("config_file", ctx.configFile());
         inputs.put("config_sha256", ctx.configSha256());
         doc.put("inputs", inputs);
         doc.put("threshold", r.threshold());

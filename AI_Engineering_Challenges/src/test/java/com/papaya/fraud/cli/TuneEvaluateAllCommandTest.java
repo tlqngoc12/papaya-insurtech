@@ -133,6 +133,43 @@ class TuneEvaluateAllCommandTest {
                 Files.readAllBytes(second.resolve("metrics.json")), "metrics.json carries no per-run value");
     }
 
+    /**
+     * The same claims, ground truth and config copied to two different places: metrics.json must be byte-identical and
+     * metrics_report.md identical outside its Timing section, because neither may carry an input path.
+     */
+    @Test
+    void differentInputPathsGiveTheSameMetricsJsonAndReportOutsideTiming() throws Exception {
+        Path frozen = tmp.resolve("frozen.json");
+        assertEquals(0, main("tune", "--claims", resource("claims.csv"), "--ground-truth", resource("ground_truth.csv"),
+                "--out", frozen.toString()));
+        Path[] inputs = {tmp.resolve("copy-a"), tmp.resolve("copy-b/deeper/still")};
+        Path[] outputs = {tmp.resolve("out-a"), tmp.resolve("out-b")};
+        for (int i = 0; i < 2; i++) {
+            Files.createDirectories(inputs[i]);
+            Files.copy(Path.of(resource("claims.csv")), inputs[i].resolve("claims.csv"));
+            Files.copy(Path.of(resource("ground_truth.csv")), inputs[i].resolve("ground_truth.csv"));
+            Files.copy(frozen, inputs[i].resolve("frozen.json"));
+            assertEquals(0, main("evaluate", "--claims", inputs[i].resolve("claims.csv").toString(), "--ground-truth",
+                    inputs[i].resolve("ground_truth.csv").toString(), "--config", inputs[i].resolve("frozen.json").toString(),
+                    "--out-dir", outputs[i].toString(), "--seed", "7"), err());
+        }
+
+        assertArrayEquals(Files.readAllBytes(outputs[0].resolve("metrics.json")),
+                Files.readAllBytes(outputs[1].resolve("metrics.json")));
+        String reportA = withoutTiming(Files.readString(outputs[0].resolve("metrics_report.md")));
+        String reportB = withoutTiming(Files.readString(outputs[1].resolve("metrics_report.md")));
+        assertEquals(reportA, reportB);
+        assertFalse(reportA.contains(tmp.toString().replace('\\', '/')) || reportA.contains(tmp.toString()),
+                "no machine path in the report");
+    }
+
+    private static String withoutTiming(String report) {
+        int start = report.indexOf("## Timing");
+        int end = report.indexOf("## Limitations");
+        assertTrue(start > 0 && end > start, "report sections");
+        return report.substring(0, start) + report.substring(end);
+    }
+
     @Test
     void groundTruthWithAClaimIdMissingFromTheClaimsIsAnError() throws Exception {
         Path labels = tmp.resolve("labels.csv");

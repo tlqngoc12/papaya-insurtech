@@ -110,8 +110,8 @@ public final class Evaluation {
 
         MetricsResult metrics = MetricsCalculator.compute(result.ranked(), labels, config, threshold,
                 run.engine().coverage(result.index()));
-        ReportContext ctx = new ReportContext(seed == null ? "not given" : seed, display(claims),
-                sha256(read(claims)), display(frozenConfig), sha256(read(frozenConfig)), run.loadMs(), run.scoreMs(),
+        ReportContext ctx = new ReportContext(seed == null ? "not given" : seed, fileName(claims),
+                sha256(read(claims)), fileName(frozenConfig), sha256(read(frozenConfig)), run.loadMs(), run.scoreMs(),
                 run.writeMs(), limitationsLink(outDir));
         Path json = outDir.resolve(METRICS_JSON);
         Path report = outDir.resolve(METRICS_REPORT);
@@ -144,15 +144,24 @@ public final class Evaluation {
         }
     }
 
+    static final String LIMITATIONS = "docs/limitations.md";
+
     /**
-     * Link from the output directory to docs/limitations.md of the working directory: relative when both are on the
-     * same root, absolute otherwise (e.g. an output directory on another Windows drive).
+     * Link from the output directory to docs/limitations.md of the working directory: relative when the output
+     * directory is inside the working directory (e.g. "../../docs/limitations.md" from reports/heldout), otherwise the
+     * project-relative "docs/limitations.md". Never an absolute path of this machine.
      */
     static String limitationsLink(Path outDir) {
-        Path target = Path.of("docs", "limitations.md").toAbsolutePath().normalize();
+        Path project = Path.of("").toAbsolutePath().normalize();
         Path from = outDir.toAbsolutePath().normalize();
-        Path link = from.getRoot() != null && from.getRoot().equals(target.getRoot()) ? from.relativize(target) : target;
-        return link.toString().replace('\\', '/');
+        if (!from.startsWith(project)) {
+            return LIMITATIONS;
+        }
+        return from.relativize(project.resolve(LIMITATIONS)).toString().replace('\\', '/');
+    }
+
+    private static String fileName(Path path) {
+        return path.getFileName().toString();
     }
 
     static String sha256(byte[] content) {
@@ -161,10 +170,6 @@ public final class Evaluation {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private static String display(Path path) {
-        return path.toString().replace('\\', '/');
     }
 
     private static byte[] read(Path file) {
