@@ -227,6 +227,7 @@
   - C. Median/MAD (robust). *Đánh đổi:* bền nhất với outlier, nhưng lệch chữ "standard deviations" của đề.
 - **Đề xuất của Claude:** B. Vẫn đúng "mean + 2 SD" của đề, lại tránh được masking.
 - **Quyết định:** A. Sau khi đo metric (Task 17), nếu recall của riêng luật upcoding thấp rõ rệt thì chuyển sang C (median/MAD).
+- **Quyết định Task 17 (2026-10-25, trên dataset tuning seed 42):** R4: giữ R4-A (z-score, thống kê gồm cả claim đang xét). Lý do: Tiêu chí đổi sang median/MAD đặt trước là recall upcoding < 70% trên tuning; thực tế 86,7% (26/30) nên không kích hoạt. Bốn claim sót là ba claim tăng nhẹ và CLM-01130 bị masking, là giới hạn đã biết của z-score (L9). Đổi rule sau khi đã thấy số là chỉnh cho đẹp.
 
 ### R5. Unbundling
 
@@ -361,6 +362,7 @@
   - C. Chọn T tối ưu F1 trên seed tuning, báo cáo trên seed khác. *Đánh đổi:* bài bản, tốn công hơn.
 - **Đề xuất của Claude:** A cùng bảng ngưỡng (precision/recall/FPR tại T = 10, 20, …, 100). Minh bạch, và cho thấy rõ đánh đổi giữa trọng số và ngưỡng.
 - **Quyết định:** A. Trên dataset tuning, chọn T là giá trị cho recall cao nhất mà FPR vẫn ≤ 20%; rồi đóng băng T và trọng số, chỉ đo trên dataset held-out để không tự chấm bài đã biết đáp án.
+- **Quyết định Task 17 (2026-10-25, trên dataset tuning seed 42):** T = 7. Lý do: Giữ tiêu chí đã chốt trước khi chạy: T là giá trị cho recall cao nhất với FPR chuẩn <= 20% (đúng chữ của đề). Trên tuning T = 7 cho recall 98,0%, FPR 3,3%. FDR 23,4% không đạt nếu hiểu "FPR" theo nghĩa tỉ lệ cảnh báo sai; mình báo cáo cả hai cách hiểu thay vì đổi tiêu chí. T = 11 qua cả hai cách hiểu (FDR 9,3%) nhưng recall còn 73,0% (biên 3 điểm), rapid và clustering không bao giờ được bắt khi đứng một mình, và vi phạm mục tiêu nội bộ recall >= 85%.
 
 ### S4. Cấu hình trọng số và tham số rule
 

@@ -80,3 +80,21 @@ Tám bệnh viện "chỉ làm ngày thường" không có claim hợp lệ nào
 *Nguồn: G7, generator spec mục 5.*
 
 Để claim gian lận ngoài upcoding không vô tình vượt ngưỡng upcoding (D12), generator cắt nhiễu số tiền của chúng (và của bản gốc duplicate/rapid) ở m ≤ 1,25, thay vì ±3σ (m ≤ 1,45) như claim hợp lệ. Engine không dùng đặc điểm này, nhưng một mô hình học máy huấn luyện trên dataset này có thể học được nó.
+
+## L13. Kết quả 100% của weekend anomaly dựa trên bằng chứng ít
+
+*Nguồn: Task 17, báo cáo tuning seed 42.*
+
+Trên tuning, rule weekend anomaly chỉ xét 40 claim (claim cuối tuần có phẫu thuật, đủ lịch sử), trong đó 20 claim gian lận và 20 claim hợp lệ. Recall 20/20 và precision 20/20 vì vậy dựa trên một mẫu rất nhỏ, và mọi claim gian lận đều nằm ở 8 bệnh viện được dựng sẵn để không có claim cuối tuần nào khác (L11).
+
+## L14. Near-miss 0/55 chỉ chứng minh generator và engine nhất quán về ranh giới
+
+*Nguồn: Task 17, báo cáo tuning seed 42.*
+
+Không claim near-miss nào bị flag trên tuning. Điều này chỉ cho thấy generator đặt các claim sát biên đúng phía của ranh giới mà engine cài đặt (cùng quy ước R10). Nó không phải bằng chứng rằng rule tổng quát hoá tốt trên dữ liệu thật, nơi các ca sát biên không được thiết kế có chủ đích.
+
+## L15. Rapid re-submission và amount clustering chỉ có tác dụng khi T ≤ 7
+
+*Nguồn: Task 17, S3, L2.*
+
+Rapid và clustering có trọng số 2, nên một claim chỉ kích hoạt một trong hai rule này có điểm round(100 × 2 / 28) = 7. Với T ≥ 8, recall của hai pattern này bằng 0 trừ khi claim kích hoạt thêm rule khác: trên tuning, recall tổng giảm từ 98,0% (T = 7) xuống 73,0% (T = 8). T = 7 vì vậy là điều kiện để hai rule này có tác dụng, và lựa chọn T gắn chặt với trọng số của chúng.

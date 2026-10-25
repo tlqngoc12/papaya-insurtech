@@ -21,8 +21,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | done | `4ad074b` |
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | done | `08cfdc6` |
 | 15 | Near-miss và noise | done | `f6d7481` |
-| 16 | Metric, subcommand `evaluate` và `tune` | done | commit "Task 16" (mã điền ở lần cập nhật sau) |
-| 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | todo | |
+| 16 | Metric, subcommand `evaluate` và `tune` | done | `bae0be7` |
+| 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | done | commit "Task 17", tag `frozen-before-heldout` (mã điền ở lần cập nhật sau) |
 | 18 | Held-out (seed 2024) và seed ổn định 101–105 | todo | |
 | 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
 
@@ -34,7 +34,11 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 16 đã commit: 189 test xanh. Chưa chạy `tune`/`evaluate` trên dataset thật (Task 17–18).
+Task 17 đã commit và gắn tag `frozen-before-heldout` (chưa push). Chưa bắt đầu Task 18.
+
+Task 17a: Đã sinh `data/tuning/` (seed 42; sinh lại cho SHA-256 giống hệt), chạy `tune` (T = 7) và `evaluate` (`reports/tuning/`). Không sửa rule, trọng số, tham số hay generator. Chưa sinh held-out (seed 2024) và seed 101–105.
+
+Số **in-sample trên tuning** (không phải số nộp): T = 7 (T = 1..7 cho cùng TP/FP); TP 196, FP 60, FN 4, TN 1.740; recall 98,0%, FPR chuẩn 3,3% (PASS), FDR 23,4% (FAIL theo cách hiểu thứ hai), precision 76,6%. Recall mọi pattern ≥ 70% (thấp nhất upcoding 86,7%). Không chạm điều kiện dừng nào (recall tổng < 70%, pattern < 70%, FPR chuẩn > 5%). `frozen-config.json` chỉ khác `fraud-config.json` ở trường `threshold`.
 
 Báo cáo kiểm tra seed 42 sau Task 15 (chỉ báo cáo, **không** dùng để chỉnh generator, **chưa phải số chính thức**): 256 claim bị flag. Gian lận bị flag bởi đúng rule: 196/200 (upcoding 26/30, phantom 25/25, các pattern khác đủ). Hợp lệ bị flag: 60 = band_noise 20 + phantom_day_legit 6 (đều cố ý) + band_host 7 + base 15 + natural_followup 12. Không near-miss nào bị flag.
 
@@ -50,9 +54,9 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 16 vào bảng trạng thái.
-2. Task 17: tuning seed 42, quyết định R4, commit đóng băng `config/frozen-config.json`.
-3. Task 18: held-out seed 2024 và seed ổn định 101–105.
+1. Điền mã commit Task 17 vào bảng trạng thái.
+2. Task 18: held-out seed 2024 và seed ổn định 101–105, với config đã đóng băng; không chỉnh gì sau khi xem kết quả.
+3. Task 19: writeup.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -114,6 +118,10 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 17, quyết định trên tuning seed 42 (đã ghi nguyên văn vào `design-decisions.md`, mục S3 và R4):
+  - T = 7. Lý do: Giữ tiêu chí đã chốt trước khi chạy: T là giá trị cho recall cao nhất với FPR chuẩn <= 20% (đúng chữ của đề). Trên tuning T = 7 cho recall 98,0%, FPR 3,3%. FDR 23,4% không đạt nếu hiểu "FPR" theo nghĩa tỉ lệ cảnh báo sai; mình báo cáo cả hai cách hiểu thay vì đổi tiêu chí. T = 11 qua cả hai cách hiểu (FDR 9,3%) nhưng recall còn 73,0% (biên 3 điểm), rapid và clustering không bao giờ được bắt khi đứng một mình, và vi phạm mục tiêu nội bộ recall >= 85%.
+  - R4: giữ R4-A (z-score, thống kê gồm cả claim đang xét). Lý do: Tiêu chí đổi sang median/MAD đặt trước là recall upcoding < 70% trên tuning; thực tế 86,7% (26/30) nên không kích hoạt. Bốn claim sót là ba claim tăng nhẹ và CLM-01130 bị masking, là giới hạn đã biết của z-score (L9). Đổi rule sau khi đã thấy số là chỉnh cho đẹp.
+  - Thêm L13 (weekend dựa trên 40 claim), L14 (near-miss 0/55 chỉ chứng minh tính nhất quán), L15 (rapid và clustering cần T ≤ 7) vào `limitations.md`.
 - 2026-10-25: Task 16, metric và lệnh `tune`/`evaluate`/`all`.
   - Dự đoán gian lận khi `risk_score >= T`. Báo cáo cả FPR chuẩn (FP / số claim hợp lệ) và FDR (FP / số claim bị flag), kèm định nghĩa (M1).
   - Chọn T (S3): trong các T có FPR ≤ 20%, recall cao nhất, rồi FPR thấp nhất, rồi T lớn nhất; so sánh trên số đếm. `tune` báo lỗi và không ghi file nếu không T nào đạt FPR ≤ 20%, hoặc nếu T tốt nhất có TP = 0.
