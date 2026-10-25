@@ -10,8 +10,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | `d8b8e1e` |
 | 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | `205b36e` |
 | 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | `98cb920` |
-| 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | commit "Task 05" (mã điền ở lần cập nhật sau) |
-| 06 | Rule duplicate và rapid re-submission | todo | |
+| 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | `7bda7e6` |
+| 06 | Rule duplicate và rapid re-submission | done | commit "Task 06" (mã điền ở lần cập nhật sau) |
 | 07 | Rule upcoding | todo | |
 | 08 | Rule unbundling và diagnosis-procedure mismatch | todo | |
 | 09 | Rule phantom billing và amount clustering | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Task 05 đã commit: 54 test xanh. Bắt đầu Task 06.
+Task 06 đã commit: 62 test xanh. Bắt đầu Task 07.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 05 vào bảng trạng thái.
-2. Task 06: rule duplicate và rapid re-submission.
-3. Task 07: rule upcoding.
+1. Điền mã commit Task 06 vào bảng trạng thái.
+2. Task 07: rule upcoding.
+3. Task 08: rule unbundling và diagnosis-procedure mismatch.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -93,6 +93,11 @@ Task 05 đã commit: 54 test xanh. Bắt đầu Task 06.
   - `DatasetIndex.of` ném `IllegalArgumentException` khi `claim_id` trùng (lỗi lập trình, reader đã loại trước).
   - `weekendRatioExcluding` trả rỗng khi provider không còn claim nào khác; ném lỗi khi claim không thuộc index.
   - `Rule` là interface thường, seal ở Task 10.
+- 2026-10-25: Task 06, duplicate và rapid.
+  - Duplicate khớp đúng 4 trường của đề (member, provider, date, diagnosis); flag mọi claim trừ claim đầu theo (`claim_date`, `claim_id`).
+  - Rapid: có ít nhất một claim trước đó cùng member và chẩn đoán trong `window_days` (≤ 7), bất kể provider, không tính cặp đã là duplicate của chính claim đó. Evidence trích claim gần nhất.
+  - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
+  - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 
 ## Ràng buộc cho các task sau
 
@@ -113,6 +118,7 @@ Task 05 đã commit: 54 test xanh. Bắt đầu Task 06.
 **Task 13 (upcoding, unbundling):**
 - Upcoding: với mọi procedure có giá gốc ≥ 15.000, nếu số tiền rơi vào dải clustering thì lấy lại hệ số. Chỉ nhắm nhóm chữ ký có ít nhất 10 claim.
 - Unbundling: nhiễu cắt ≤ 47.000.
+- Duplicate: generator **chủ động tránh** đặt bản sao duplicate trong cửa sổ 7 ngày của một claim khác cùng member và chẩn đoán. Không lọc lại sau khi sinh. Số claim gian lận khớp từ 2 rule trở lên chỉ được **báo cáo** (Q4).
 
 **Task 14 (clustering, weekend):**
 - Claim clustering dùng P-2009 (phẫu thuật) phải đặt vào ngày thường, hoặc ở provider không thuộc nhóm "chỉ làm ngày thường", để không kích hoạt weekend anomaly.
