@@ -1,9 +1,7 @@
 {
   "inputs": {
     "seed": "42",
-    "claims_file": "data/tuning/claims.csv",
     "claims_sha256": "43840b63c6795eb66e63a7150ad711a105a3ee3ebd2046c1802c136263af18a1",
-    "config_file": "config/frozen-config.json",
     "config_sha256": "114e7f8a62011c34026380ab8dcf44987afa41d4bf4054826c5098deb52e9cb0"
   },
   "threshold": 7,
