@@ -12,8 +12,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | `98cb920` |
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | `7bda7e6` |
 | 06 | Rule duplicate và rapid re-submission | done | `75c1ef6` |
-| 07 | Rule upcoding | done | commit "Task 07" (mã điền ở lần cập nhật sau) |
-| 08 | Rule unbundling và diagnosis-procedure mismatch | todo | |
+| 07 | Rule upcoding | done | `9d6f6e6` |
+| 08 | Rule unbundling và diagnosis-procedure mismatch | done | commit "Task 08" (mã điền ở lần cập nhật sau) |
 | 09 | Rule phantom billing và amount clustering | todo | |
 | 10 | Rule weekend anomaly | todo | |
 | 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Task 07 đã commit: 67 test xanh. Bắt đầu Task 08.
+Task 08 đã commit: 80 test xanh. Bắt đầu Task 09.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 07 vào bảng trạng thái.
-2. Task 08: rule unbundling và diagnosis-procedure mismatch.
-3. Task 09: rule phantom billing và amount clustering.
+1. Điền mã commit Task 08 vào bảng trạng thái.
+2. Task 09: rule phantom billing và amount clustering.
+3. Task 10: rule weekend anomaly, seal `Rule`.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -98,6 +98,10 @@ Task 07 đã commit: 67 test xanh. Bắt đầu Task 08.
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 08, unbundling và mismatch.
+  - Unbundling: đủ mọi thành phần của một bundle (bất kể chẩn đoán), hoặc mã gói cùng bất kỳ thành phần nào. Thiếu thành phần thì không flag. Một flag mỗi claim, evidence liệt kê mọi bundle khớp kèm tổng giá gốc thành phần so với giá gói.
+  - Nhãn evidence: "Unbundling", "Double billing" (mã gói + thành phần), hoặc "Unbundling and double billing" khi claim có cả hai loại. Rule và severity không đổi.
+  - Mismatch: chỉ flag khi chẩn đoán có trong whitelist và có ít nhất một procedure đã biết không hợp lệ. Chẩn đoán lạ không flag; procedure lạ bị bỏ qua và đếm vào coverage.
 - 2026-10-25: Task 07, upcoding: mean/SD tính cả claim đang xét (R4-A); nhóm < `n_min` hoặc SD = 0/NaN thì không flag; z > `z_threshold` nghiêm ngặt. Evidence ghi mean và SD với 1 chữ số thập phân, z với 2 chữ số, để người đọc tự tính lại được z.
 
 ## Ràng buộc cho các task sau
@@ -124,6 +128,8 @@ Task 07 đã commit: 67 test xanh. Bắt đầu Task 08.
 
 **Task 16 (metric):**
 - Báo cáo `UpcodingRule.coverage(index)`: số claim được xét, bỏ qua vì nhiều procedure, vì nhóm < `n_min`, vì SD = 0.
+- Báo cáo `UnbundlingRule.coverage(index)`: số claim được xét (ít nhất 2 mã khác nhau), bỏ qua vì chỉ có một procedure.
+- Báo cáo `DiagnosisProcedureMismatchRule.coverage(index)`: số claim được xét, bỏ qua vì chẩn đoán không có trong whitelist, và số claim được xét có mã procedure không có trong catalog (mã đó bị bỏ qua).
 
 ## Ghi chú cho phiên sau
 
