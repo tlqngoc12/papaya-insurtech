@@ -1,0 +1,28 @@
+# Limitations
+
+Các hạn chế được ghi lại ngay khi gặp trong quá trình làm. Cuối cùng sẽ đưa vào writeup.
+Mỗi mục ghi nguồn (mã quyết định trong `design-decisions.md` hoặc task) để truy ngược.
+
+## L1. Held-out chỉ chống overfit theo seed, không chống overfit theo generator
+
+*Nguồn: Q24, M3.*
+
+Dataset tuning (seed 42), held-out (seed 2024) và các seed ổn định (101–105) đều sinh từ cùng một generator do chính mình viết. Held-out bảo đảm T không được chọn cho vừa một seed cụ thể. Nhưng nó không chứng minh được rule hoạt động tốt trên gian lận thật, vì cả hai dataset cùng phân phối và các pattern gian lận được cài theo đúng định nghĩa của rule.
+
+## L2. Với S1-A, ngưỡng T ≤ 7 làm trọng số không ảnh hưởng việc gắn cờ
+
+*Nguồn: Q5, S1, S3.*
+
+Với score = round(100 × Σw_triggered / Σw_all) và tổng trọng số 28, điểm khác 0 thấp nhất là 7 (một rule có trọng số 2). Nếu T được chọn ≤ 7 thì mọi claim có ít nhất một flag đều bị gắn cờ. Khi đó trọng số chỉ ảnh hưởng thứ hạng, không ảnh hưởng claim nào bị gắn cờ, và metric precision/recall/FPR không phụ thuộc trọng số.
+
+## L3. Chấm điểm theo lô dùng thống kê cả năm
+
+*Nguồn: R12.*
+
+Upcoding, weekend anomaly và rapid re-submission dùng thống kê trên toàn dataset, nên một claim tháng 1 được đánh giá bằng cả dữ liệu tháng 12. Hệ thống chạy trước khi thanh toán sẽ không có dữ liệu tương lai. Hướng mở rộng: chỉ dùng dữ liệu trước claim đang xét.
+
+## L4. Unbundling chỉ xét trong phạm vi một claim
+
+*Nguồn: R5.*
+
+Trường hợp tách các thành phần của một bundle ra nhiều claim cùng member, provider và ngày không bị phát hiện bởi rule unbundling.
