@@ -1,0 +1,595 @@
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   C:\Users\Zen
+
+  Get to finished work sooner with Opus 5.5. Switch anytime with /model.
+
+❯ cd D:\working\repositories\papaya-insurtech                                   
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Thư mục D:\working\repositories\papaya-insurtech có hai thư mục con:
+
+  - AI_Engineering_Challenges
+  - Logical_Questions
+
+  Shell không giữ được thư mục này: sau lệnh, thư mục làm việc tự trở về
+  C:\Users\Zen. Vì vậy từ giờ tôi sẽ dùng đường dẫn tuyệt đối khi làm việc trong
+  dự án này.
+
+  Bạn muốn làm gì tiếp theo?
+
+✻ Worked for 10s · done 1:22 PM
+
+❯ Mình đang làm AI Challenge 10 (Fraud Detection Scoring Engine) trong bài      
+  tuyển dụng của Papaya Insurtech. Đề nằm ở docs/AI_Challenge_10.md. Hãy chỉ    
+  đọc file này. Lúc này chưa viết code. Hãy tạo mới docs/design-decisions.md để 
+  mình review và chốt các quyết định thiết kế trước khi bắt đầu xây. Stack là   
+  Java 21, Maven, JUnit 5, Jackson. Thư mục làm việc hiện tại là                
+  AI_Engineering_Challenges.                                                    
+  Nội dung file gồm:                                                            
+  - Danh sách các quyết định thiết kế cần chốt. Hãy tìm kỹ những chỗ đề mơ hồ,  
+  thiếu hoặc tự mâu thuẫn, cũng như các trường hợp biên của từng rule, cách     
+  sinh dữ liệu, cách chấm điểm, cách đo metric, định dạng output, hiệu năng và  
+  test.                                                                         
+  - Mỗi mục theo khuôn:                                                         
+  - Vấn đề: đề mơ hồ hoặc cần chọn gì, và vì sao nó ảnh hưởng đến kết quả.      
+  - Phương án: 2-3 lựa chọn kèm đánh đổi ngắn gọn.                              
+  - Đề xuất của Claude: một dòng, ghi riêng, kèm lý do ngắn.                    
+  - Quyết định: để trống, mình sẽ tự điền.                                      
+  - Bảng trọng số cho 8 rule (thang 1-5): cột trọng số đề xuất, lý do ngắn, cột 
+  "Trọng số" để trống.                                                          
+  - Mục "Rủi ro khả thi": mục tiêu recall >= 70% và FPR <= 20% trên dữ liệu tự  
+  sinh có khả thi không, những điểm có thể khiến metric đẹp giả.                
+  - Ràng buộc:                                                                  
+  - Không tự điền phần "Quyết định" và "Trọng số".                              
+  - Không viết code, không tạo file nào khác.                                   
+  - Xong thì dừng lại, tóm tắt ngắn có bao nhiêu mục và những mục khó nhất, rồi 
+  chờ  mình review.                                                             
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(D:\working\repositories\papaya-insurtech\AI_Engineering_Challenges\docs\
+       design-decisions.md)
+  ⎿  Wrote 632 lines to D:\working\repositories\papaya-insurtech\AI_Enginee
+     ring_Challenges\docs\design-decisions.md
+       1 # Design Decisions — AI Challenge 10: Fraud Detection Scoring En
+       2 
+       3 > Tài liệu này dùng để review và chốt các quyết định thiết kế **
+         trước khi viết code**.
+       5 > Nguồn duy nhất: `docs/AI_Challenge_10.md`.
+       6 
+       8 
+       9 - Mỗi mục có mã (`D`, `R`, `S`, `M`, `O`, `T`) để tiện nhắc lại 
+         khi review và khi viết code/test.
+         t **Trọng số** do bạn điền.
+     … +1006 lines (ctrl+o to expand)
+
+● Mình đã tạo docs/design-decisions.md với 48 mục quyết định, chia 6 nhóm: dữ
+  liệu (14), rule (12), chấm điểm (7), metric (3), output (5), kiến trúc/hiệu
+  năng/test (7). File có thêm bảng trọng số 8 rule và mục "Rủi ro khả thi". Mình
+  để trống toàn bộ phần "Quyết định" và cột "Trọng số", không viết code và
+  không tạo file nào khác.
+
+  Những mục khó nhất (gắn ⚠️ trong file):
+
+  1. D10 – Phantom billing: đề tự mâu thuẫn. Đề muốn 25 claim gian lận, nhưng
+     rule chỉ chạy khi một provider có trên 30 claim trong một ngày. Muốn giữ
+     đúng con số 25 thì phải chịu ít nhất 6 FP; còn nếu gán nhãn cả 31 claim thì
+     lệch số đếm của đề.
+  2. D11 – Weekend anomaly: đề nói provider "không bao giờ" làm cuối tuần, nhưng
+     rule lại dùng ngưỡng "< 5%". Mỗi provider chỉ có khoảng 40 claim, nên 5%
+     chỉ là 2 claim. Dồn claim gian lận cuối tuần vào ít provider thì chính
+     chúng đẩy tỉ lệ vượt 5% và rule không bắt được.
+  3. R3/R4 – Upcoding: một claim có nhiều procedure nhưng chỉ có một số tiền,
+     nên không rõ so với trung bình của procedure nào. Ngoài ra, nếu tính trung
+     bình và độ lệch chuẩn có cả claim đang xét thì trong nhóm nhỏ điểm z gần
+     như không thể vượt 2.
+  4. S1 – Chuẩn hoá điểm: nếu chia cho tổng mọi trọng số, một rule mạnh nhất chỉ
+     được khoảng 18/100. Ví dụ trong đề (hai flag 4+2 được 78 điểm) không khớp
+     cách tính này.
+  5. M1 – "False positive rate": nếu hiểu theo chuẩn thì cho phép tới 360 FP.
+     Nếu người chấm hiểu là 1 − precision thì chỉ khoảng 50 FP. Hai cách hiểu
+     chênh nhau hơn 7 lần về độ khó.
+
+  Về mục tiêu metric: với dữ liệu tự sinh, đạt recall ≥ 70% và FPR ≤ 20% gần như
+  chắc chắn. Câu hỏi thật là metric có đáng tin không. File liệt kê 10 cách
+  metric có thể "đẹp giả" và đề xuất cách phòng: thêm claim hợp lệ sát ngưỡng,
+  báo cáo trên nhiều seed, và tách recall theo từng pattern.
+
+  Bạn review và điền "Quyết định" xong thì báo mình. Nên chốt các mục ⚠️ trước,
+  vì nhiều mục khác phụ thuộc vào chúng.
+
+✻ Worked for 6m 46s · done 1:38 PM
+
+※ recap: Bạn đang chốt thiết kế cho AI Challenge 10 (Fraud Detection Engine), và mình đã tạo xong docs/design-decisions.md gồm 48 mục cùng bảng trọng số. Bước tiếp theo: bạn review và điền phần "Quyết định", nên làm các mục ⚠️ trước. (disable recaps in /config)
+
+❯ Mình đã review và điền Quyết định rồi. Hãy đọc lại design-decisions.md.       
+  1. Ràng buộc cứng                                                             
+  - Deadline: nộp muộn nhất 28/10; mục tiêu xong tối 27/10. Tổng thời gian dự   
+  kiến khoảng 7 giờ.                                                            
+  - Java 21, Maven, JUnit 5, Jackson (databind, jsr310, dataformat-csv). Không  
+  thêm thư viện khác nếu chưa hỏi mình.                                         
+  - Engine KHÔNG BAO GIỜ đọc ground_truth.csv. Chỉ module metric được đọc.      
+  - T và trọng số chốt trên dataset tuning, đóng băng, rồi mới đo trên dataset  
+  held-out. Không chỉnh bất cứ thứ gì sau khi đã nhìn kết quả held-out.         
+  - Số liệu báo cáo phải là số thật chạy ra. Không ước lượng, không làm tròn    
+  đẹp, không viết số vào README khi chưa chạy.                                  
+  - Phải có >= 15 unit test thật sự kiểm tra hành vi (mục tiêu 25-30), chấm     
+  2.000 claim < 30 giây.                                                        
+  - Đề yêu cầu nộp: dataset, scored output, metrics report, writeup, timeline   
+  estimate và log hội thoại AI.                                                 
+                                                                                
+  2. Việc cần làm là đề xuất kế hoạch triển khai gồm:                           
+  - Cấu trúc package / module và vai trò từng class chính (DatasetIndex, Rule,  
+  các rule, scoring, generator, metric, CLI).                                   
+  - Danh sách task nhỏ theo thứ tự, mỗi task có: mục tiêu, file sẽ đụng, test   
+  sẽ viết, tiêu chí nghiệm thu kiểm tra được bằng lệnh, ước lượng thời gian.    
+  Mỗi task phải đủ nhỏ để mình review trong 10-15 phút và commit riêng.         
+  - Lịch gợi ý cho 25/10, 26/10, 27/10 và buổi sáng 28/10 làm buffer.           
+  - Danh sách >= 15 test dự kiến, gắn với rule và biên (R10).                   
+                                                                                
+  3. Rà soát trước khi lập kế hoạch. Trước khi đề xuất, hãy kiểm tra            
+  design-decisions.md và chỉ ra:                                                
+  - Chỗ nào các quyết định mâu thuẫn nhau (ví dụ độ phủ bảng chẩn đoán giữa D5, 
+  D7 và R8; danh sách bundle giữa R5 và generator).                             
+  - Chỗ nào còn trống và ảnh hưởng đến việc code.                               
+  - Chỗ nào đề gốc và quyết định của mình lệch nhau.                            
+    Liệt kê thành danh sách ngắn kèm đề xuất của bạn. Không tự quyết định thay  
+  mình; hỏi mình từng mục.                                                      
+                                                                                
+  4. Cách làm việc sau khi mình duyệt kế hoạch                                  
+  - Làm từng task một, dừng lại sau mỗi task để mình review. Không gộp nhiều    
+  task.                                                                         
+  - Mỗi task: viết test trước hoặc cùng lúc, chạy test, tóm tắt thay đổi bằng   
+  vài dòng, rồi chờ mình xác nhận trước khi commit và sang task tiếp.           
+  - Mình sẽ phải giải thích từng rule và từng quyết định khi phỏng vấn, nên với 
+  mỗi rule hãy kèm một ví dụ số cụ thể (vài claim, điểm ra bao nhiêu) trong     
+  phần tóm tắt.                                                                 
+  - Nếu một quyết định thiết kế phát sinh mà design-decisions.md chưa nói, dừng 
+  lại hỏi mình, đừng tự chọn rồi đi tiếp.                                       
+  - Nếu kết quả không đạt (recall < 70% hoặc FPR chuẩn > 20%), báo thật và phân 
+  tích nguyên nhân; không điều chỉnh generator để cho ra số đẹp.                
+  - Ghi chú hạn chế (limitations) ngay khi gặp, vào một file                    
+  docs/limitations.md để cuối cùng đưa vào writeup.                             
+                                                                                
+  5. Expected: Chỉ một bản kế hoạch + danh sách mâu thuẫn/câu hỏi. Chưa tạo     
+  file code, chưa chạy mvn. Viết bằng tiếng Việt, giữ thuật ngữ kỹ thuật bằng   
+  tiếng Anh.                                                                    
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+
+● Mình đã đọc lại toàn bộ design-decisions.md (644 dòng). Thư mục
+  AI_Engineering_Challenges là git repo. Theo yêu cầu, mình chưa tạo file và chưa chạy mvn.
+
+  ---
+
+  Phần 1 — Rà soát trước khi lập kế hoạch
+
+  Các câu hỏi được đánh số Q1…Q24 để bạn trả lời theo số. Mỗi câu có đề xuất của
+  mình, nhưng mình không tự chốt câu nào.
+
+  A. Các quyết định mâu thuẫn nhau
+
+  Q1. R3 (fallback) + R5 + D12: claim unbundled sẽ bị upcoding bắt nhầm.
+  Khoảng 25 claim unbundled chia cho ít nhất 5 bundle, nên mỗi nhóm chữ ký chỉ
+  có khoảng 5 mẫu, dưới n_min. Khi đó rule lùi về nhóm procedure chính (thành
+  phần đầu tiên). Nhưng số tiền của claim unbundled là tổng các thành phần, nên
+  lớn hơn hẳn mean của một thành phần, z rất cao và upcoding kích hoạt. Điều này
+  vi phạm D12 (mỗi claim gian lận chỉ khớp một pattern).
+  → Đề xuất: bỏ fallback. Nhóm theo chữ ký; nhóm nào dưới n_min thì bỏ qua
+  upcoding cho claim đó và đếm số claim bị bỏ qua trong báo cáo. Với claim chỉ
+  có một procedure, chữ ký trùng với mã procedure nên vẫn đúng chữ của đề.
+
+  Q2. R4-A (tính cả claim đang xét) mâu thuẫn với H2#10 và với việc sinh dữ liệu
+  upcoding.
+  Ca upcoding sát ngưỡng (z khoảng 2,1–2,5 như H2#10 gợi ý) sẽ bị masking dưới
+  R4-A và rơi xuống dưới 2. Ngoài ra, theo H2#1 generator không được dùng ngưỡng
+  "2σ" của engine, nên phải tự có một hệ số riêng.
+  → Đề xuất: generator dùng số tiền = giá gốc × U(1,5; 2,5), độc lập với engine.
+  Chấp nhận masking và báo cáo trung thực recall của riêng upcoding.
+  Còn câu "đổi sang C sau khi đo (task T8)" trong R4: mình đề xuất chỉ được
+  quyết định đổi trên dataset tuning, trước khi đóng băng (Task 17 ở dưới). "T8"
+  trong R4 đang trùng mã với mục thiết kế T1–T7.
+
+  Q3. D12 + R9 + D8: amount clustering khó "sạch" mà không sinh FP tự nhiên.
+  Muốn claim clustering gian lận (47.500–49.999) không đồng thời bị upcoding
+  bắt, procedure của nó phải có μ ≥ khoảng 37.000 (vì CV 15% nên 2σ ≈ 1,3μ).
+  Nhưng claim hợp lệ của những procedure đó tự nhiên rơi vào dải với xác suất
+  khoảng 5–6%. Ví dụ μ = 40.000 cho khoảng 5,8%. Như vậy đã có FP clustering tự
+  nhiên, cộng thêm 20–40 claim cài theo R9.
+  → Đề xuất: danh mục có 2–3 procedure nội trú với μ ∈ [38.000; 45.000]. Số
+  claim cài theo R9 giữ cố định là 20, và báo cáo tách riêng hai nhóm "rơi vào
+  dải tự nhiên" và "cài có chủ đích".
+
+  Q4. D12 (kiểm tra không chồng pattern) mâu thuẫn với H2#1 (generator độc lập 
+  engine).
+  Nếu generator gọi rule của engine để kiểm tra rồi sinh lại, hai phía bị buộc
+  vào nhau, và thực chất là lọc dữ liệu theo engine.
+  → Đề xuất: generator tránh chồng lấn ngay từ cách sinh (chọn procedure và dải
+  tiền phù hợp). Sau đó một test chạy engine trên dữ liệu đã sinh và chỉ báo cáo
+  số claim gian lận khớp từ 2 rule trở lên. Không sinh lại, không lọc.
+
+  Q5. S3 mâu thuẫn với H3, và trọng số có được chỉnh khi tuning không?
+  - S3 chọn T với điều kiện FPR ≤ 20%, còn H3 đặt mục tiêu nội bộ FPR ≤ 5%. Cần
+    chốt điều kiện nào dùng để chọn T.
+  - Với S1-A và trọng số đã điền (tổng 28), điểm của một rule đơn lẻ là 7, 11,
+    14 hoặc 18. T tối ưu gần như chắc chắn ≤ 7, tức "có flag là gian lận". Khi
+    đó trọng số chỉ ảnh hưởng thứ hạng, không ảnh hưởng metric. Bạn nên chuẩn bị
+    giải thích điểm này khi phỏng vấn.
+  - Cần quy tắc phá hoà khi nhiều T cho cùng recall.
+  - Ràng buộc cứng của bạn ghi "T và trọng số chốt trên tuning". Vậy trọng số ở
+    mục G đã là cuối cùng, hay còn được chỉnh?
+
+  → Đề xuất: điều kiện chọn T là FPR ≤ 20% (theo đề), H3 chỉ để báo cáo. Quét T
+  = 1…100; trong các T cho recall cao nhất, chọn FPR thấp nhất, sau đó chọn T
+  lớn nhất. Trọng số giữ nguyên như mục G (đã giải trình từ trước khi có dữ
+  liệu), chỉ tinh chỉnh T. Ghi chú "Lưu ý khi điền" ở mục G đang nói theo S1-B
+  (S_ref), đã lỗi thời.
+
+  Q6. D1, M3 và H3 không khớp nhau về số seed.
+  H3 có mục tiêu "độ lệch chuẩn giữa các seed ≤ 5 điểm phần trăm", nghĩa là cần
+  nhiều seed. Nhưng D1 ghi seed phụ là tuỳ chọn, và số lượng chưa quyết.
+  → Đề xuất: seed tuning = 42, held-out = 2024, cộng 5 seed ổn định (101–105)
+  chạy với config đã đóng băng. Chi phí chỉ vài giây.
+
+  Q7. D13, R10 và R9: ngân sách hard negatives và nhãn trong ground truth.
+  - Riêng kịch bản near-miss "một provider có đúng 30 claim trong một ngày" đã
+    tốn 30 claim, gần hết ngân sách 30–50 của D13.
+  - Claim cài theo R9 và 6 claim hợp lệ trong ngày phantom (D10-B) chưa có nhãn.
+
+  → Đề xuất:
+  - Giá trị fraud_pattern gồm 8 tên rule, cộng none, legit_near_miss (sát biên,
+    không kích hoạt rule) và legit_noise (hợp lệ nhưng cài để kích hoạt rule: R9
+    và ngày phantom).
+  - Kịch bản ngày 30 claim tính riêng, ngoài ngân sách.
+  - Các near-miss khác khoảng 25 claim.
+
+  Q8. D10-B: chi tiết của ngày phantom.
+  Tần suất tự nhiên chỉ khoảng 0,1 claim/provider/ngày, nên 6 claim hợp lệ cùng
+  ngày phải cài có chủ đích.
+  → Đề xuất: đúng 6 claim (không phải "ít nhất 6"). Ngày phantom là ngày thường,
+  tại một phòng khám tầm trung không thuộc nhóm "chỉ làm ngày thường", để không
+  ảnh hưởng R7.
+
+  Q9. Tên file danh mục không thống nhất.
+  D5 và S4 nói "một file JSON resource", còn R7 lại nhắc procedures.json.
+  → Đề xuất: tách thành procedures.json, diagnoses.json, bundles.json,
+  diagnosis-procedures.json, cộng fraud-config.json.
+
+  Q10. T2 thiếu bước chọn và đóng băng T.
+  Các subcommand generate | score | evaluate | all không có bước nào để chọn T
+  trên tuning.
+  → Đề xuất: thêm subcommand tune. Lệnh này ghi config/frozen-config.json, và
+  file được commit trước khi sinh held-out, để git history làm bằng chứng. Lệnh
+  all chỉ dùng config đã đóng băng.
+
+  B. Chỗ còn trống và ảnh hưởng đến việc code
+
+  Q11. R3/R4: tham số thống kê. Cần chốt n_min, SD của mẫu hay của tổng thể, và
+  cách xử lý khi SD = 0.
+  → Đề xuất: n_min = 10, SD mẫu (chia n−1), SD = 0 thì không flag.
+
+  Q12. R7: điều kiện của rule. Cần chốt lịch sử tối thiểu, và việc claim có ít
+  nhất một procedure phẫu thuật thì có tính không.
+  → Đề xuất: lịch sử tối thiểu 20 claim (đã loại claim đang xét); có ≥ 1
+  procedure phẫu thuật là đủ để xét.
+
+  Q13. D11: profile provider "chỉ làm ngày thường".
+  → Đề xuất: 8 provider, mỗi provider ít nhất 60 claim, không có claim hợp lệ
+  nào vào cuối tuần, mỗi provider 2–3 claim gian lận cuối tuần.
+
+  Q14. R8: "bất kỳ" hay "tất cả". Mismatch khi bất kỳ procedure nào sai hay khi
+  tất cả đều sai? Quyết định hiện chưa nói rõ. Ngoài ra, có cho phép 1–2 mã
+  chung (phí khám) đi với mọi chẩn đoán không?
+  → Đề xuất: chọn "bất kỳ", và có mã chung.
+
+  Q15. Chi tiết generator cho từng pattern.
+  → Đề xuất:
+  - Duplicate: copy y nguyên procedure và số tiền.
+  - Rapid: cách 1–7 ngày, khoảng 70% cùng provider.
+  - Clustering: số tiền rải đều trong 47.500–49.999.
+  - Mismatch: thay một procedure bằng procedure cùng claim_type nhưng không hợp
+    lệ với chẩn đoán.
+
+  Q16. Dataset nào được nộp?
+  → Đề xuất: nộp cả data/tuning/ và data/heldout/. Số liệu chính trong README
+  lấy từ held-out.
+
+  Q17. H3 "precision ≥ 75%". Bạn đang để ngỏ mục này.
+  → Đề xuất: chỉ báo cáo, không coi là mục tiêu.
+
+  Q18. Test tích hợp metric (T5) chạy trên seed nào, và xử lý ra sao nếu fail?
+  → Đề xuất: chạy trên seed held-out, viết trước khi chạy held-out. Nếu fail thì
+  giữ nguyên test, báo thật, rồi hỏi bạn.
+
+  Q19. Dữ liệu cho test chịu tải 100.000 claim.
+  → Đề xuất: dùng builder sinh claim hợp lệ ngẫu nhiên, không dùng generator.
+  Giới hạn < 30 giây và in thời gian ra.
+
+  Q20. Vị trí project và tên package.
+  → Đề xuất: pom.xml đặt ngay tại AI_Engineering_Challenges/ (gốc git), package
+  com.papaya.fraud, artifact fraud-engine.
+
+  Q21. Git và log hội thoại AI.
+  - Làm trên nhánh feat/challenge-10 hay trên nhánh mặc định?
+  - Log AI: đề xuất export transcript Claude Code (jsonl) sang markdown trong
+    docs/ai-log/ ở task cuối.
+
+  C. Chỗ lệch giữa đề gốc và quyết định của bạn
+
+  Các điểm này cần ghi trong writeup. Bạn chỉ cần xác nhận là chấp nhận.
+
+  Q22. S1-A lệch ví dụ trong đề. Với S1-A, hai flag (4 + 2) cho round(600/28) =
+  21, trong khi ví dụ của đề cho 78. Writeup cần giải thích lý do chọn A.
+  → Đề xuất: chấp nhận và giải thích.
+
+  Q23. Các chỗ diễn giải thêm so với chữ của đề.
+  - R3: nhóm theo chữ ký tập procedure, trong khi đề ghi "per procedure code".
+  - R2: loại các cặp đã là duplicate.
+  - R7: tính tỉ lệ leave-one-out.
+  - R8: chẩn đoán lạ thì không flag.
+
+  → Đề xuất: chấp nhận, và đưa thành mục "Interpretations" trong writeup.
+
+  Q24. Held-out chỉ chống overfit theo seed. Hai dataset cùng sinh từ một
+  generator, nên held-out không chống được việc rule "khớp" với chính generator.
+  → Đề xuất: ghi vào docs/limitations.md ngay ở Task 01.
+
+  ---
+
+  Phần 2 — Kế hoạch triển khai
+
+  Cấu trúc project
+
+  AI_Engineering_Challenges/
+  ├── pom.xml                         Java 21, 
+  jackson-databind/jsr310/dataformat-csv, JUnit 5, shade
+  ├── config/frozen-config.json       (Task 17) T + trọng số đã đóng băng
+  ├── data/{tuning,heldout,seeds}/    claims.csv, ground_truth.csv, 
+  scored_claims.json, metrics_report.md, metrics.json
+  ├── docs/                           design-decisions.md, limitations.md, 
+  writeup (README), ai-log/
+  └── src/main/java/com/papaya/fraud/
+      ├── Main                        CLI: generate | score | tune | evaluate | 
+  all (tự parse args)
+      ├── model/      Claim, ClaimType, Flag, ScoredClaim             (record)
+      ├── catalog/    Procedure, Diagnosis, Bundle, Catalog, CatalogLoader (kiểm
+  tra bất biến)
+      ├── config/     FraudConfig, RuleParams, ConfigLoader            (mặc định
+  trong resources, ghi đè bằng --config)
+      ├── io/         ClaimCsvReader (+ validate R11 → LoadResult), 
+  ClaimCsvWriter, ScoredOutputWriter
+      ├── engine/     DatasetIndex (pha 1), Rule (sealed interface, pha 2), 
+  FraudEngine, ScoreCalculator, Ranker
+      ├── engine/rules/  8 class, mỗi class một rule (tên theo O5)
+      ├── generator/  DatasetGenerator, ProviderProfile, LegitClaimFactory, 
+  FraudInjector (theo pattern),
+      │               NoiseInjector (near-miss / noise), GroundTruthWriter
+      └── metrics/    GroundTruthReader (package-private), ConfusionMatrix, 
+  MetricsCalculator,
+                      ThresholdSelector, MetricsReportWriter (md + json)
+
+  Cách bảo đảm engine không bao giờ đọc ground truth (ràng buộc cứng):
+
+  - GroundTruthReader là package-private trong metrics.
+  - Subcommand score không nhận tham số ground truth.
+  - Một test quét source của engine/ và io/ để bảo đảm không tham chiếu
+    GroundTruth hay ground_truth.
+
+  Danh sách task
+
+  Mỗi task là một commit. Thời gian ước lượng gồm cả code, chạy test và thời
+  gian bạn review.
+
+  #: 01
+  Task: Skeleton Maven. File: pom.xml, Main (in usage), .gitignore,
+  docs/limitations.md (Q24). Test: MainTest (in usage khi thiếu tham số).
+  Nghiệm thu: mvn -q package xanh; java -jar target/fraud-engine.jar in usage
+  Thời gian: 15'
+  ────────────────────────────────────────
+  #: 02
+  Task: Danh mục. File: catalog/*, 4 file JSON. Khoảng 20 chẩn đoán, 35–40
+  procedure, ít nhất 5 bundle, whitelist phủ mọi chẩn đoán. Test:
+  CatalogLoaderTest (≥ 5 bundle, ≥ 10 cặp, mọi chẩn đoán có trong map, thành
+  phần bundle hợp lệ với ít nhất một chẩn đoán). Nghiệm thu: mvn -q  test 
+  -Dtest=CatalogLoaderTest
+  Thời gian: 30'
+  ────────────────────────────────────────
+  #: 03
+  Task: Config. File: config/*, fraud-config.json. Test: tải mặc định và tổng
+  trọng số = 28; trọng số ngoài 1–5 thì báo lỗi; ghi đè bằng đường dẫn. Nghiệm
+  thu: -Dtest=ConfigLoaderTest
+  Thời gian: 15'
+  ────────────────────────────────────────
+  #: 04
+  Task: Đọc/ghi CSV và validate (R11). File: io/ClaimCsv*, model/Claim. Test:
+  round-trip với |, tính lại is_weekend kèm cảnh báo, loại dòng có số tiền ≤ 0
+  / trùng id / procedure rỗng, giữ mã lạ kèm cảnh báo. Nghiệm thu:
+  -Dtest=ClaimCsv*Test
+  Thời gian: 25'
+  ────────────────────────────────────────
+  #: 05
+  Task: DatasetIndex, Rule, Flag, fixture builder. Test: DatasetIndexTest (nhóm
+  member + chẩn đoán, provider + ngày, chữ ký, đếm số claim cuối tuần). Nghiệm
+  thu: -Dtest=DatasetIndexTest
+  Thời gian: 25'
+  ────────────────────────────────────────
+  #: 06
+  Task: Rule duplicate và rapid (R1, R2, D14). Test: #1–#7 ở danh sách dưới.
+  Nghiệm thu: -Dtest=DuplicateClaimRuleTest,RapidResubmissionRuleTest
+  Thời gian: 25'
+  ────────────────────────────────────────
+  #: 07
+  Task: Rule upcoding (R3, R4, Q1, Q11). Test: #8–#10
+  Thời gian: 25'
+  ────────────────────────────────────────
+  #: 08
+  Task: Rule unbundling và mismatch (R5, R8). Test: #11–#13, #20–#22
+  Thời gian: 25'
+  ────────────────────────────────────────
+  #: 09
+  Task: Rule phantom và clustering (R6, R9). Test: #14–#15, #23–#24
+  Thời gian: 15'
+  ────────────────────────────────────────
+  #: 10
+  Task: Rule weekend (R7). Test: #16–#19
+  Thời gian: 20'
+  ────────────────────────────────────────
+  #: 11
+  Task: Chấm điểm, xếp hạng, FraudEngine, ScoredOutputWriter, subcommand score, 
+  đo thời gian (S1, S2, S5–S7, O1–O3, T4). Test: #25–#27, #35–#36. Nghiệm thu:
+  mvn -q test xanh; score trên fixture nhỏ ra JSON đúng schema
+  Thời gian: 35'
+  ────────────────────────────────────────
+  #: 12
+  Task: Generator phần hợp lệ (D6–D8, D14), subcommand generate, ghi ground
+  truth. Test: #31, #33
+  Thời gian: 35'
+  ────────────────────────────────────────
+  #: 13
+  Task: Generator gian lận (1): duplicate, rapid, upcoding, unbundling (D9, D12,
+
+  Q2, Q15). Test: số lượng từng pattern (một phần của #32)
+  Thời gian: 30'
+  ────────────────────────────────────────
+  #: 14
+  Task: Generator gian lận (2): phantom, weekend, mismatch, clustering (D10,
+  D11,
+  Q3, Q8, Q13). Test: hoàn tất #32
+  Thời gian: 30'
+  ────────────────────────────────────────
+  #: 15
+  Task: Near-miss và noise (D13, R9, Q7). Test: số claim theo từng nhãn, ngày 30
+
+  claim có đúng 30 claim
+  Thời gian: 20'
+  ────────────────────────────────────────
+  #: 16
+  Task: Metric và subcommand evaluate/tune (M1, M2, O4, S3, Q10). Test: #28–#30,
+
+  #34, báo cáo chồng lấn (Q4). Nghiệm thu: evaluate trên fixture ra md và json
+  Thời gian: 30'
+  ────────────────────────────────────────
+  #: 17
+  Task: Tuning: sinh seed 42, chạy tune, quyết định R4 (chỉ trên tuning), ghi
+  frozen-config.json. Commit đóng băng. Báo cáo số thật
+  Thời gian: 20'
+  ────────────────────────────────────────
+  #: 18
+  Task: Held-out và các seed ổn định: viết test #37 trước, sau đó sinh seed 2024
+
+  và 101–105, rồi evaluate với config đã đóng băng. Không chỉnh gì sau bước này
+  Thời gian: 15'
+  ────────────────────────────────────────
+  #: 19
+  Task: Writeup: README (cách chạy, interpretations, giải trình trọng số, số
+  liệu
+  thật copy từ metrics.json), timeline ước lượng so với thực tế, tổng hợp
+  limitations, docs/ai-log/
+  Thời gian: 30'
+
+  Tổng: khoảng 7 giờ 45 phút, vượt mục tiêu 7 giờ khoảng 45 phút. Nếu muốn giữ
+  đúng 7 giờ, có thể cắt theo thứ tự sau:
+
+  1. Bỏ 5 seed ổn định: −10'.
+  2. Gộp task 09 và 10: −5'.
+  3. Giảm near-miss xuống chỉ còn các ca biên R10: −10'.
+  4. Dùng sáng 28/10 cho phần vượt.
+
+  Lịch gợi ý
+
+  ┌────────────┬──────────────────────────────────────────────┬─────────────┐
+  │    Ngày    │                     Task                     │  Thời gian  │
+  ├────────────┼──────────────────────────────────────────────┼─────────────┤
+  │ 25/10 (hôm │ 01 → 05: nền móng và DatasetIndex            │ khoảng 1    │
+  │  nay)      │                                              │ giờ 50      │
+  ├────────────┼──────────────────────────────────────────────┼─────────────┤
+  │ 26/10      │ 06 → 13: 8 rule, chấm điểm, generator phần   │ khoảng 3    │
+  │            │ hợp lệ và gian lận (1)                       │ giờ 30      │
+  ├────────────┼──────────────────────────────────────────────┼─────────────┤
+  │ 27/10      │ 14 → 19: generator (2), metric, tuning →     │ khoảng 2    │
+  │            │ đóng băng → held-out, writeup                │ giờ 25      │
+  ├────────────┼──────────────────────────────────────────────┼─────────────┤
+  │ 28/10 sáng │ Buffer: sửa lỗi, đọc lại writeup, push       │             │
+  │            │ GitHub                                       │             │
+  └────────────┴──────────────────────────────────────────────┴─────────────┘
+
+  Việc chạy held-out được đặt vào 27/10 thay vì sáng 28/10. Nếu held-out không
+  đạt, vẫn còn thời gian phân tích và viết lại cho trung thực.
+
+  Danh sách test dự kiến (37 test, chưa tính tham số hoá)
+
+  Rule (mục có đánh dấu R10 là test biên):
+  1. Duplicate: claim thứ 2 trùng 4 khoá bị flag, claim đầu không bị flag;
+     evidence trích claim_id gốc.
+  2. Duplicate: khác chẩn đoán thì không flag.
+  3. Duplicate: nhóm 3 bản thì flag bản thứ 2 và thứ 3, evidence ghi số lần lặp.
+  4. Rapid: cách 7 ngày thì flag. R10
+  5. Rapid: cách 8 ngày thì không flag. R10
+  6. Rapid: cùng ngày cùng provider (đã là duplicate) thì không flag rapid; cùng
+     ngày khác provider thì flag.
+  7. Rapid: claim đầu của cặp không bị flag.
+  8. Upcoding: z vừa vượt 2 thì flag; evidence có số tiền, mean, z.
+  9. Upcoding: z = 2,0 chính xác thì không flag. R10
+  10. Upcoding: nhóm dưới n_min hoặc SD = 0 thì không flag.
+  11. Unbundling: đủ thành phần thì flag, evidence nêu mã bundle.
+  12. Unbundling: thiếu một thành phần thì không flag.
+  13. Unbundling: có cả mã bundle lẫn thành phần thì flag (thanh toán kép).
+  14. Phantom: 31 claim trong một provider-ngày thì cả 31 bị flag. R10
+  15. Phantom: 30 claim thì không flag. R10
+  16. Weekend: phẫu thuật Thứ Bảy, tỉ lệ leave-one-out < 5% thì flag.
+  17. Weekend: tỉ lệ = 5% chính xác (1 trên 20 claim còn lại) thì không flag.
+      R10
+  18. Weekend: không phẫu thuật vào cuối tuần thì không flag; phẫu thuật ngày
+      thường cũng không flag.
+  19. Weekend: lịch sử dưới mức tối thiểu thì không flag.
+  20. Mismatch: procedure không hợp lệ thì flag, evidence liệt kê procedure đó.
+  21. Mismatch: chẩn đoán không có trong map thì không flag.
+  22. Mismatch: mọi procedure đều hợp lệ thì không flag.
+  23. Clustering: 47.500 và 49.999 thì flag (tham số hoá). R10
+  24. Clustering: 47.499 và 50.000 thì không flag (tham số hoá). R10
+
+  Chấm điểm, metric, IO:
+
+  25. Công thức S1-A: {5} cho 18, {4, 2} cho 21, cả 8 rule cho 100, không rule
+      nào cho 0; làm tròn half-up với config tuỳ chỉnh.
+  26. Mỗi rule tối đa một flag, kể cả khi khớp nhiều lần (S6).
+  27. Phá hoà khi xếp hạng (S5).
+  28. Confusion matrix, precision, recall, FPR, FDR trên fixture nhỏ có kết quả
+      tính tay.
+  29. Recall theo từng pattern và precision theo từng rule.
+  30. ThresholdSelector chọn T đúng quy tắc, kể cả khi hoà.
+  31. Generator: cùng seed cho output giống hệt nhau.
+  32. Generator: 2.000 claim, 500 member, 50 provider, số lượng từng pattern
+      đúng (30/30/30/25/25/20/20/20), ngày phantom có 31 claim.
+  33. Generator: claim hợp lệ nhất quán với danh mục (D7).
+  34. Kiểm tra kiến trúc: engine và io không tham chiếu ground truth.
+  35. Chấm 2.000 claim với assertTimeout 30 giây.
+  36. 100.000 claim: in thời gian, giới hạn < 30 giây.
+  37. Tích hợp trên seed held-out: recall ≥ 70% và FPR ≤ 20%.
+
+  Ngoài 37 test này còn các test hạ tầng ở Task 01–05 (Main, Catalog, Config,
+  CSV, DatasetIndex), nên tổng số dự kiến khoảng 45. Riêng phần gắn trực tiếp
+  với rule và biên là 24 test.
+
+  Quy trình làm từng task (sau khi bạn duyệt)
+
+  Mỗi task theo thứ tự:
+
+  1. Viết test trước hoặc cùng lúc với code.
+  2. Chạy mvn -q test.
+  3. Tóm tắt thay đổi trong vài dòng. Với task rule, kèm một ví dụ số cụ thể
+     (vài claim, flag nào kích hoạt, điểm bao nhiêu).
+  4. Dừng lại chờ bạn xác nhận rồi mới commit và sang task tiếp.
+
+  Gặp quyết định chưa có trong design-decisions.md thì mình dừng lại hỏi. Gặp
+  hạn chế thì ghi ngay vào docs/limitations.md. Nếu metric không đạt, mình báo
+  thật kèm phân tích nguyên nhân và không sửa generator.
+
+  ---
+
+  Bạn trả lời các câu Q1–Q24 (có thể chỉ cần "đồng ý đề xuất" hoặc nêu số câu
+  muốn đổi) và duyệt kế hoạch. Sau đó mình bắt đầu Task 01.
+
+✻ Baked for 4m 34s · done 2:25 PM
