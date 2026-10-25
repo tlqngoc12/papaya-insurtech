@@ -51,7 +51,7 @@ class MainTest {
 
     @Test
     void knownCommandWithoutImplementationReportsNotImplemented() {
-        assertEquals(Main.EXIT_NOT_IMPLEMENTED, run("score"));
-        assertTrue(err().contains("'score' is not implemented yet"));
+        assertEquals(Main.EXIT_NOT_IMPLEMENTED, run("generate"));
+        assertTrue(err().contains("'generate' is not implemented yet"));
     }
 }

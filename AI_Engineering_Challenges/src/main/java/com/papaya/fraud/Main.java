@@ -1,6 +1,10 @@
 package com.papaya.fraud;
 
+import com.papaya.fraud.catalog.CatalogException;
+import com.papaya.fraud.cli.ScoreCommand;
+import com.papaya.fraud.config.ConfigException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.util.List;
 
 /**
@@ -33,7 +37,7 @@ public final class Main {
         System.exit(run(args, System.out, System.err));
     }
 
-    static int run(String[] args, PrintStream out, PrintStream err) {
+    public static int run(String[] args, PrintStream out, PrintStream err) {
         if (args.length == 0) {
             err.print(USAGE);
             return EXIT_USAGE;
@@ -42,6 +46,15 @@ public final class Main {
         if (command.equals("help") || command.equals("--help") || command.equals("-h")) {
             out.print(USAGE);
             return EXIT_OK;
+        }
+        List<String> rest = List.of(args).subList(1, args.length);
+        try {
+            if (command.equals("score")) {
+                return ScoreCommand.run(rest, out, err);
+            }
+        } catch (ConfigException | CatalogException | UncheckedIOException e) {
+            err.println("Error: " + e.getMessage());
+            return EXIT_USAGE;
         }
         if (COMMANDS.contains(command)) {
             err.println("Command '" + command + "' is not implemented yet.");

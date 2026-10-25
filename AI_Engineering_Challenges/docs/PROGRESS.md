@@ -15,8 +15,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 07 | Rule upcoding | done | `9d6f6e6` |
 | 08 | Rule unbundling và diagnosis-procedure mismatch | done | `ec09b94` |
 | 09 | Rule phantom billing và amount clustering | done | `d3d62a7` |
-| 10 | Rule weekend anomaly | done | commit "Task 10" (mã điền ở lần cập nhật sau) |
-| 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | todo | |
+| 10 | Rule weekend anomaly | done | `72d5303` |
+| 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | done | commit "Task 11" (mã điền ở lần cập nhật sau) |
 | 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | todo | |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | todo | |
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | todo | |
@@ -33,13 +33,15 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 10 đã commit: 100 test xanh, `Rule` đã seal. Bắt đầu Task 11.
+Task 11 đã commit: 118 test xanh. Task 12: đang viết `docs/generator-spec.md` để người dùng duyệt **trước khi code**.
+
+Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để tham khảo, chưa phải số báo cáo): 2.000 claim chấm và serialize trong 149 ms; 100.000 claim chấm trong 4.267 ms.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 10 vào bảng trạng thái.
-2. Task 11: chấm điểm, xếp hạng, `FraudEngine`, lệnh `score`.
-3. Task 12: generator phần claim hợp lệ.
+1. Điền mã commit Task 11 vào bảng trạng thái.
+2. Người dùng duyệt `docs/generator-spec.md` và trả lời các câu hỏi mở trong đó.
+3. Task 12: generator phần claim hợp lệ, lệnh `generate`.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -101,6 +103,11 @@ Task 10 đã commit: 100 test xanh, `Rule` đã seal. Bắt đầu Task 11.
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 11, chấm điểm và lệnh `score`.
+  - Điểm tính bằng số nguyên: `(200·Σw + W) / (2·W)` = round half-up của 100·Σw/W (S1-A, S7).
+  - Xếp hạng S5; flag trong mỗi claim theo thứ tự `RuleId`.
+  - `scored_claims.json`: pretty printer riêng, thụt 2 dấu cách, `"\n"`, `"key": value`, mảng rỗng là `[]`, có dòng trống cuối file.
+  - Lệnh `score` không cần T; in số claim đọc, bị loại, cảnh báo, số claim chấm, số claim bị flag, thời gian load/score/write và coverage.
 - 2026-10-25: Task 10, weekend anomaly.
   - Flag khi: claim cuối tuần, có ít nhất một procedure `surgical` trong catalog, lịch sử provider (loại claim đang xét) ≥ `min_history` (20), tỉ lệ cuối tuần leave-one-out < `max_weekend_ratio` (5%, nghiêm ngặt). Mã lạ không tính là phẫu thuật.
   - Thêm `DatasetIndex.volumeExcluding(claim)`; phần trăm cắt bớt chuyển vào `Evidence.percent`, dùng chung với clustering.
@@ -122,9 +129,6 @@ Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Inte
 - Phần trăm trong evidence được cắt bớt, không làm tròn, để không bao giờ hiển thị 100%.
 
 ## Ràng buộc cho các task sau
-
-**Task 11 (lệnh `score`):**
-- In ra số dòng bị loại và số cảnh báo khi đọc `claims.csv`.
 
 **Task 12 (generator hợp lệ):**
 - Dataset do generator sinh ra, khi đọc lại bằng `ClaimCsvReader`, phải cho **0 dòng bị loại và 0 cảnh báo**. Sẽ có test kiểm tra.

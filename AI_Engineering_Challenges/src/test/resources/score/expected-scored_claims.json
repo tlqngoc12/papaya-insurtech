@@ -1,0 +1,72 @@
+[
+  {
+    "claim_id": "CLM-00004",
+    "risk_score": 25,
+    "flags": [
+      {
+        "rule": "unbundling",
+        "severity": 4,
+        "evidence": "Unbundling on 1 bundle: all components of bundle P-2101 billed separately: P-2006, P-2004, P-2005 (35,000 at base price vs bundle price 30,000)"
+      },
+      {
+        "rule": "diagnosis_procedure_mismatch",
+        "severity": 3,
+        "evidence": "Procedures P-2006 (Appendectomy (surgeon fee)), P-2004 (General anesthesia), P-2005 (Operating room fee) are not clinically associated with diagnosis J06.9 (Acute upper respiratory infection, unspecified); valid procedures for J06.9: P-0001, P-0002, P-1001, P-1002"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-00002",
+    "risk_score": 18,
+    "flags": [
+      {
+        "rule": "duplicate_claim",
+        "severity": 5,
+        "evidence": "Duplicate of CLM-00001 (occurrence 2 of 2): same member M-0001, provider PRV-01, date 2024-03-11 and diagnosis J06.9; submitted 300 vs 300 on the original"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-00003",
+    "risk_score": 14,
+    "flags": [
+      {
+        "rule": "rapid_resubmission",
+        "severity": 2,
+        "evidence": "Re-submitted 3 days after CLM-00002 (2024-03-11, provider PRV-01) for the same member M-0001 and diagnosis J06.9; 2 earlier claims within the 7-day window"
+      },
+      {
+        "rule": "amount_clustering",
+        "severity": 2,
+        "evidence": "Amount 48,000 is 96.0% of the 50,000 auto-approval threshold (clustering band 47,500-49,999)"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-00006",
+    "risk_score": 11,
+    "flags": [
+      {
+        "rule": "diagnosis_procedure_mismatch",
+        "severity": 3,
+        "evidence": "Procedure P-1009 (Lumbar spine X-ray) is not clinically associated with diagnosis J02.9 (Acute pharyngitis, unspecified); valid procedures for J02.9: P-0001, P-0002, P-1001, P-1008"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-00005",
+    "risk_score": 7,
+    "flags": [
+      {
+        "rule": "amount_clustering",
+        "severity": 2,
+        "evidence": "Amount 48,500 is 97.0% of the 50,000 auto-approval threshold (clustering band 47,500-49,999)"
+      }
+    ]
+  },
+  {
+    "claim_id": "CLM-00001",
+    "risk_score": 0,
+    "flags": []
+  }
+]

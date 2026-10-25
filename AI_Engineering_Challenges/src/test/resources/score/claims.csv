@@ -1,0 +1,7 @@
+claim_id,member_id,provider_id,provider_name,claim_date,claim_type,diagnosis_code,procedure_codes,submitted_amount,is_weekend
+CLM-00001,M-0001,PRV-01,Alpha Clinic,2024-03-11,OUTPATIENT,J06.9,P-1001,300,false
+CLM-00002,M-0001,PRV-01,Alpha Clinic,2024-03-11,OUTPATIENT,J06.9,P-1001,300,false
+CLM-00003,M-0001,PRV-02,Beta Hospital,2024-03-14,OUTPATIENT,J06.9,P-1002,48000,false
+CLM-00004,M-0002,PRV-02,Beta Hospital,2024-03-12,OUTPATIENT,J06.9,P-2006|P-2004|P-2005,35000,false
+CLM-00005,M-0003,PRV-02,Beta Hospital,2024-03-13,INPATIENT,I21.9,P-2010,48500,false
+CLM-00006,M-0004,PRV-03,Gamma Clinic,2024-03-15,OUTPATIENT,J02.9,P-1009,900,false
