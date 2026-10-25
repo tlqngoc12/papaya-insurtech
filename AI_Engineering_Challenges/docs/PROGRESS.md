@@ -17,7 +17,7 @@ Cập nhật lần cuối: 2026-10-25.
 | 09 | Rule phantom billing và amount clustering | done | `d3d62a7` |
 | 10 | Rule weekend anomaly | done | `72d5303` |
 | 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | done | `e79b499` |
-| 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | doing (đặc tả chờ duyệt) | |
+| 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | done | commit "Task 12" (mã điền ở lần cập nhật sau) |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | todo | |
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | todo | |
 | 15 | Near-miss và noise | todo | |
@@ -30,17 +30,21 @@ Commit ngoài kế hoạch:
 - `d335972` Add .gitattributes to normalize line endings to LF.
 - `c871aa9` Add CLAUDE.md and PROGRESS.md, update limitations.
 - `f915033` Fix: use ﻿ escape in ClaimCsvReader.
+- `045729e` Add generator spec and limitations L10-L12.
 
 ## Đang làm
 
-Task 12: `docs/generator-spec.md` đã duyệt (G1–G14) và commit cùng `limitations.md` (L10–L12). Đang code Task 12: nền, provider, member, `claim_id`, ghi file, giữ chỗ 4 nhóm clustering và hai ngày kịch bản, test kiến trúc.
+Task 12 xong code, `mvn -q test` xanh: 143 test. **Chờ review**, chưa commit. Đặc tả và L10–L12 đã commit ở `045729e`.
+
+Chạy thử seed 42 trên dữ liệu nền (1.719 claim, toàn bộ hợp lệ; chỉ để kiểm tra, chưa phải dataset cuối, không dùng để chỉnh gì): 59 claim bị flag, gồm upcoding 34, rapid 18, clustering 7; các rule khác 0.
 
 Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để tham khảo, chưa phải số báo cáo): 2.000 claim chấm và serialize trong 149 ms; 100.000 claim chấm trong 4.267 ms.
 
 ## Việc tiếp theo
 
-1. Hoàn tất Task 12, chờ review.
+1. Commit Task 12 sau khi được duyệt.
 2. Task 13: duplicate, rapid, upcoding, unbundling theo `generator-spec.md` mục 5.
+3. Task 14: phantom, weekend, mismatch, clustering.
 3. Task 12: generator phần claim hợp lệ, lệnh `generate`.
 
 ## Câu hỏi còn mở / chờ quyết
@@ -103,6 +107,7 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 12, generator phần nền: member gán trước chẩn đoán (member mạn tính quyết định chẩn đoán); claim tái khám không đặt ở bệnh viện chỉ làm ngày thường. Spec 4.1 đã cập nhật cho khớp.
 - 2026-10-25: Duyệt `docs/generator-spec.md`: G1 (RNG con bằng `SplittableRandom`, seed trộn bằng hàm băm), G2 (rút lại lựa chọn ≤ 1.000 lần, chỉ theo ràng buộc của generator), G3–G14 theo đề xuất; upcoding 20 claim mạnh + 10 claim nhẹ; 6 near-miss quanh dải clustering nằm trong quota 32. D3 có thêm cột `scenario` (ghi vào phụ lục `design-decisions.md`). Thêm L10–L12 vào `limitations.md`.
 - 2026-10-25: Task 11, chấm điểm và lệnh `score`.
   - Điểm tính bằng số nguyên: `(200·Σw + W) / (2·W)` = round half-up của 100·Σw/W (S1-A, S7).

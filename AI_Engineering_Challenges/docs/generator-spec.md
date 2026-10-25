@@ -81,7 +81,10 @@
 
 ### 4.1 Chuỗi sinh (D7)
 
-provider (tầng) → `claim_type` → chẩn đoán (theo bảng 4.3, hoặc chẩn đoán mạn tính của member) → template procedure (bảng 4.3) → giá → ngày → member.
+provider (tầng) → `claim_type` → **member** → chẩn đoán (theo bảng 4.3, hoặc chẩn đoán mạn tính của member) → template procedure (bảng 4.3) → giá → ngày.
+
+- Member được gán **trước** chẩn đoán, vì member mạn tính quyết định chẩn đoán: khoảng 60% claim OUTPATIENT của họ dùng chẩn đoán mạn tính. *(Task 12, đã duyệt)*
+- Claim tái khám tự nhiên (G3) **không** đặt ở bệnh viện chỉ làm ngày thường, để các bệnh viện này giữ đúng quota 65 claim nền. *(Task 12, đã duyệt)*
 
 - Mọi template chỉ dùng cặp hợp lệ trong whitelist.
 - Mọi procedure của template đều có `claim_type` của claim. *(D7; Task 02 ghi chú về J18.9 + P-1002)*

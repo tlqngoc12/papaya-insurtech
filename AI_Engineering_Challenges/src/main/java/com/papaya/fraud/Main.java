@@ -1,6 +1,7 @@
 package com.papaya.fraud;
 
 import com.papaya.fraud.catalog.CatalogException;
+import com.papaya.fraud.cli.GenerateCommand;
 import com.papaya.fraud.cli.ScoreCommand;
 import com.papaya.fraud.config.ConfigException;
 import java.io.PrintStream;
@@ -52,7 +53,11 @@ public final class Main {
             if (command.equals("score")) {
                 return ScoreCommand.run(rest, out, err);
             }
-        } catch (ConfigException | CatalogException | UncheckedIOException e) {
+            if (command.equals("generate")) {
+                return GenerateCommand.run(rest, out, err);
+            }
+        } catch (ConfigException | CatalogException | UncheckedIOException | IllegalArgumentException
+                 | IllegalStateException e) {
             err.println("Error: " + e.getMessage());
             return EXIT_USAGE;
         }

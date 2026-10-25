@@ -1,0 +1,153 @@
+{
+  "dataset": {
+    "total_claims": 2000,
+    "member_count": 500,
+    "year": 2024,
+    "provider_tiers": {
+      "weekday_only_hospitals": 8,
+      "regular_hospitals": 4,
+      "clinics": 28,
+      "dental_clinics": 10
+    }
+  },
+  "volumes": {
+    "claim_type_mix": { "OUTPATIENT": 0.55, "INPATIENT": 0.25, "DENTAL": 0.20 },
+    "outpatient_hospital_share": 0.3,
+    "weekday_only_hospital_claims": 65,
+    "provider_weight_shape": 1.5,
+    "member_weight_shape": 1.5
+  },
+  "chronic": {
+    "member_share": 0.2,
+    "diagnoses": ["I10", "E11.9", "M17.1"],
+    "outpatient_share": 0.6,
+    "followups": 12,
+    "followup_gap_days": { "min": 2, "max": 7 }
+  },
+  "pricing": {
+    "noise_cv": 0.15,
+    "noise_truncation_sigmas": 3,
+    "fraud_noise_cap": 1.25
+  },
+  "case_mix": {
+    "OUTPATIENT": [
+      { "diagnosis": "J06.9", "weight": 18, "templates": [
+        { "procedures": ["P-0001"], "weight": 40 },
+        { "procedures": ["P-1001"], "weight": 25 },
+        { "procedures": ["P-1001", "P-1002"], "weight": 35 } ] },
+      { "diagnosis": "J02.9", "weight": 12, "templates": [
+        { "procedures": ["P-0001"], "weight": 40 },
+        { "procedures": ["P-1008"], "weight": 60 } ] },
+      { "diagnosis": "I10", "weight": 16, "templates": [
+        { "procedures": ["P-0002"], "weight": 30 },
+        { "procedures": ["P-1005"], "weight": 25 },
+        { "procedures": ["P-1102"], "weight": 25 },
+        { "procedures": ["P-1005", "P-1006"], "weight": 20 } ] },
+      { "diagnosis": "E11.9", "weight": 14, "templates": [
+        { "procedures": ["P-0002"], "weight": 30 },
+        { "procedures": ["P-1004"], "weight": 30 },
+        { "procedures": ["P-1101"], "weight": 40 } ] },
+      { "diagnosis": "M54.5", "weight": 10, "templates": [
+        { "procedures": ["P-1009"], "weight": 50 },
+        { "procedures": ["P-1010"], "weight": 50 } ] },
+      { "diagnosis": "N39.0", "weight": 10, "templates": [
+        { "procedures": ["P-1003"], "weight": 40 },
+        { "procedures": ["P-1103"], "weight": 60 } ] },
+      { "diagnosis": "H10.9", "weight": 6, "templates": [
+        { "procedures": ["P-1011"], "weight": 100 } ] },
+      { "diagnosis": "J18.9", "weight": 6, "templates": [
+        { "procedures": ["P-1002"], "weight": 60 },
+        { "procedures": ["P-1001", "P-1002"], "weight": 40 } ] },
+      { "diagnosis": "M17.1", "weight": 8, "templates": [
+        { "procedures": ["P-1010"], "weight": 70 },
+        { "procedures": ["P-0002"], "weight": 30 } ] }
+    ],
+    "DENTAL": [
+      { "diagnosis": "K02.1", "weight": 35, "templates": [
+        { "procedures": ["P-3002"], "weight": 60 },
+        { "procedures": ["P-3001"], "weight": 25 },
+        { "procedures": ["P-3005"], "weight": 15 } ] },
+      { "diagnosis": "K05.1", "weight": 25, "templates": [
+        { "procedures": ["P-3001"], "weight": 80 },
+        { "procedures": ["P-0002"], "weight": 20 } ] },
+      { "diagnosis": "K04.0", "weight": 20, "templates": [
+        { "procedures": ["P-3101"], "weight": 70 },
+        { "procedures": ["P-3006"], "weight": 30 } ] },
+      { "diagnosis": "K01.1", "weight": 10, "templates": [
+        { "procedures": ["P-3007"], "weight": 100 } ] },
+      { "diagnosis": "K08.1", "weight": 10, "templates": [
+        { "procedures": ["P-3008"], "weight": 100 } ] }
+    ],
+    "INPATIENT": [
+      { "diagnosis": "J18.9", "weight": 22, "templates": [
+        { "procedures": ["P-2001", "P-2002"], "weight": 70 },
+        { "procedures": ["P-2001"], "weight": 30 } ] },
+      { "diagnosis": "K35.8", "weight": 18, "templates": [
+        { "procedures": ["P-2101"], "weight": 100 } ] },
+      { "diagnosis": "K80.2", "weight": 14, "templates": [
+        { "procedures": ["P-2102"], "weight": 100 } ] },
+      { "diagnosis": "I21.9", "weight": 6, "templates": [
+        { "procedures": ["P-2010", "P-2011"], "weight": 100 } ] },
+      { "diagnosis": "I63.9", "weight": 10, "templates": [
+        { "procedures": ["P-2003", "P-2001"], "weight": 100 } ] },
+      { "diagnosis": "S72.0", "weight": 10, "templates": [
+        { "procedures": ["P-2012"], "weight": 100 } ] },
+      { "diagnosis": "O80", "weight": 12, "templates": [
+        { "procedures": ["P-2008"], "weight": 100 } ] },
+      { "diagnosis": "M17.1", "weight": 7, "templates": [
+        { "procedures": ["P-2013"], "weight": 100 } ] },
+      { "diagnosis_pool": "inpatient_only", "weight": 1, "templates": [
+        { "procedures": ["P-0001"], "weight": 100 } ] }
+    ]
+  },
+  "band_hosts": [
+    { "diagnosis": "I21.9", "procedures": ["P-2010"], "natural_claims": 32, "near_miss_claims": 2, "planted_claims": 10 },
+    { "diagnosis": "O82", "procedures": ["P-2009"], "natural_claims": 32, "near_miss_claims": 2, "planted_claims": 10 },
+    { "diagnosis": "I21.9", "procedures": ["P-2010", "P-2001"], "natural_claims": 32, "near_miss_claims": 1, "planted_claims": 10 },
+    { "diagnosis": "O82", "procedures": ["P-2009", "P-2001"], "natural_claims": 32, "near_miss_claims": 1, "planted_claims": 10 }
+  ],
+  "max_planted_share": 0.25,
+  "fraud_counts": {
+    "duplicate": 30,
+    "resubmission": 30,
+    "upcode": 30,
+    "unbundle": 25,
+    "phantom": 25,
+    "weekend_surgery": 20,
+    "mismatch": 20,
+    "band_amount": 20
+  },
+  "upcode": {
+    "strong_claims": 20,
+    "strong_factor": { "min": 1.5, "max": 2.5 },
+    "mild_claims": 10,
+    "mild_factor": { "min": 1.2, "max": 1.6 },
+    "max_per_group": 3,
+    "min_group_claims": 30
+  },
+  "resubmission": {
+    "gap_days": { "min": 1, "max": 7 },
+    "same_provider_share": 0.7
+  },
+  "unbundle": {
+    "full_component_claims": 20,
+    "bundle_with_component_claims": 5,
+    "amount_cap": 47000
+  },
+  "planted_amount_range": { "min": 47500, "max": 49999 },
+  "phantom_day": { "fraud_claims": 25, "legit_claims": 6 },
+  "noise": {
+    "band_legit_claims": 20,
+    "near_miss": {
+      "band_below": 3,
+      "band_above": 3,
+      "resubmission_8_days": 4,
+      "same_day_other_diagnosis": 3,
+      "weekend_surgery_regular_hospital": 4,
+      "partial_bundle": 4,
+      "mild_amount": 4
+    },
+    "day_30_claims": 30
+  },
+  "max_redraws": 1000
+}
