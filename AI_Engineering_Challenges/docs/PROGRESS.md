@@ -11,8 +11,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | `205b36e` |
 | 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | `98cb920` |
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | `7bda7e6` |
-| 06 | Rule duplicate và rapid re-submission | done | commit "Task 06" (mã điền ở lần cập nhật sau) |
-| 07 | Rule upcoding | todo | |
+| 06 | Rule duplicate và rapid re-submission | done | `75c1ef6` |
+| 07 | Rule upcoding | done | commit "Task 07" (mã điền ở lần cập nhật sau) |
 | 08 | Rule unbundling và diagnosis-procedure mismatch | todo | |
 | 09 | Rule phantom billing và amount clustering | todo | |
 | 10 | Rule weekend anomaly | todo | |
@@ -30,17 +30,16 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Task 06 đã commit: 62 test xanh. Bắt đầu Task 07.
+Task 07 đã commit: 67 test xanh. Bắt đầu Task 08.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 06 vào bảng trạng thái.
-2. Task 07: rule upcoding.
-3. Task 08: rule unbundling và diagnosis-procedure mismatch.
+1. Điền mã commit Task 07 vào bảng trạng thái.
+2. Task 08: rule unbundling và diagnosis-procedure mismatch.
+3. Task 09: rule phantom billing và amount clustering.
 
 ## Câu hỏi còn mở / chờ quyết
 
-- [ ] **Q1**: chờ người dùng gửi nội dung để điền vào phụ lục `design-decisions.md`.
 - [ ] **Q5**: chờ người dùng gửi nội dung để điền vào phụ lục.
 - [ ] **README mục lục ở gốc `papaya-insurtech/`**: người dùng nói "thêm sau", chưa gắn vào task nào.
 
@@ -98,11 +97,10 @@ Task 06 đã commit: 62 test xanh. Bắt đầu Task 07.
   - Rapid: có ít nhất một claim trước đó cùng member và chẩn đoán trong `window_days` (≤ 7), bất kể provider, không tính cặp đã là duplicate của chính claim đó. Evidence trích claim gần nhất.
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
+- 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 07, upcoding: mean/SD tính cả claim đang xét (R4-A); nhóm < `n_min` hoặc SD = 0/NaN thì không flag; z > `z_threshold` nghiêm ngặt. Evidence ghi mean và SD với 1 chữ số thập phân, z với 2 chữ số, để người đọc tự tính lại được z.
 
 ## Ràng buộc cho các task sau
-
-**Task 07 (rule upcoding):**
-- SD = NaN (nhóm 1 claim) hoặc SD = 0 thì không flag (Q11).
 
 **Task 10 (rule weekend, rule cuối cùng):**
 - Đổi `Rule` thành `sealed interface ... permits` 8 class rule. Ở Task 05 chưa seal được vì javac báo `sealed class must have subclasses` khi chưa có class con (đã thử).
@@ -117,11 +115,15 @@ Task 06 đã commit: 62 test xanh. Bắt đầu Task 07.
 
 **Task 13 (upcoding, unbundling):**
 - Upcoding: với mọi procedure có giá gốc ≥ 15.000, nếu số tiền rơi vào dải clustering thì lấy lại hệ số. Chỉ nhắm nhóm chữ ký có ít nhất 10 claim.
+- Upcoding (Q1): claim upcoded phải là claim **một procedure**, vì rule bỏ qua claim nhiều procedure.
 - Unbundling: nhiễu cắt ≤ 47.000.
 - Duplicate: generator **chủ động tránh** đặt bản sao duplicate trong cửa sổ 7 ngày của một claim khác cùng member và chẩn đoán. Không lọc lại sau khi sinh. Số claim gian lận khớp từ 2 rule trở lên chỉ được **báo cáo** (Q4).
 
 **Task 14 (clustering, weekend):**
 - Claim clustering dùng P-2009 (phẫu thuật) phải đặt vào ngày thường, hoặc ở provider không thuộc nhóm "chỉ làm ngày thường", để không kích hoạt weekend anomaly.
+
+**Task 16 (metric):**
+- Báo cáo `UpcodingRule.coverage(index)`: số claim được xét, bỏ qua vì nhiều procedure, vì nhóm < `n_min`, vì SD = 0.
 
 ## Ghi chú cho phiên sau
 

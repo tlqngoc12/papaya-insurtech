@@ -44,3 +44,15 @@ Rule weekend anomaly dựa vào cờ `surgical` trong `procedures.json`. Cờ n�
 *Nguồn: Task 02, thử phá test có chủ ý.*
 
 Tính đúng lâm sàng của whitelist do tác giả review thủ công qua git diff; test chỉ bắt lỗi cấu trúc và claim_type. Ví dụ, nếu tráo một cặp đúng lấy một cặp sai về y khoa nhưng cùng claim_type, số cặp vẫn là 64 và không test nào đỏ.
+
+## L8. Upcoding không xét claim nhiều procedure
+
+*Nguồn: Q1, Task 07.*
+
+Rule upcoding chỉ xét claim có đúng một procedure. Rule unbundling chỉ bắt claim chứa **đủ** các thành phần của một bundle. Vì vậy một claim nhiều procedure không chứa bundle nào (ví dụ P-2001 + P-2002 cho viêm phổi) mà bị khai số tiền quá cao thì không rule nào kiểm tra số tiền của nó. Số claim bị bỏ qua vì có nhiều procedure được đếm và ghi trong báo cáo metric.
+
+## L9. Upcoding tính mean/SD có cả claim đang xét (masking)
+
+*Nguồn: R4-A, Q2, Task 07.*
+
+Vì mean và SD tính trên cả nhóm, kể cả claim đang xét, chính số tiền bất thường kéo mean lên và làm SD phình ra. Với nhóm n claim, z của một claim không bao giờ vượt (n − 1)/√n, dù số tiền lớn đến đâu: n = 5 cho tối đa 1,79, n = 10 cho tối đa 2,85. Nhóm càng nhỏ thì upcoding càng khó bị bắt, và nhiều claim upcoded trong cùng nhóm còn che lẫn nhau.

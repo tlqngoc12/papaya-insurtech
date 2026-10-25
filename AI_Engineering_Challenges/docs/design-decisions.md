@@ -651,7 +651,10 @@
 
 ### Mâu thuẫn giữa các quyết định
 
-- **Q1** — Quan hệ: *ghi đè* R3 (bỏ phần fallback). Nội dung: *(chờ bạn gửi riêng)*.
+- **Q1** — Quan hệ: *ghi đè* R3 (thay cả quyết định "B kết hợp C"). Chốt ngày **2026-10-25**.
+  - Quyết định: **A**. Rule upcoding chỉ xét claim có **đúng một procedure**; claim nhiều procedure bị bỏ qua và được đếm trong báo cáo.
+  - Nhóm so sánh là các claim chỉ có cùng một procedure đó. Nhóm dưới `n_min` thì không flag và được đếm là bị bỏ qua (Q11).
+  - Lý do: Chỉ khi claim có một procedure thì số tiền mới so sánh được với giá của đúng procedure đó. Claim nhiều procedure đã được rule unbundling phụ trách, nên bỏ qua ở rule này để mỗi claim gian lận chỉ khớp một pattern.
 - **Q2** — Quan hệ: *bổ sung* R4, D8, H2#10.
   - Generator sinh số tiền upcoding = giá gốc × U(1,5; 2,5), độc lập với engine.
   - Chấp nhận masking của R4-A, báo cáo trung thực recall riêng của upcoding.
