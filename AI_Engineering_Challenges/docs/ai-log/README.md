@@ -41,4 +41,15 @@ Every `.txt` file here comes from the Claude Code command `/export`, run during 
 
 ## Advisor conversation
 
-I also used a separate Claude conversation as an advisor: it reviewed Claude Code's output, helped write the task prompts and helped draft design decisions. Its log is added to this folder separately.
+I also used a separate Claude conversation as an advisor: it reviewed Claude Code's output, helped write the task prompts and helped draft design decisions. Its log is `advisor-chat-log-2026-10-25.md`.
+
+- **Not a `/export`.** It is a text export of that conversation, and its first lines explain how it was made. It covers 2026-10-25 from 11:56 to 20:33 (local time, UTC+7), with 64 user and 67 assistant messages. Earlier, unrelated parts of the same conversation are left out.
+- **What was removed.** Messages are copied as written, except for the system reminders that the tool adds automatically. Tool calls and attached files are listed by name only, without their content. The attachments were mostly reports from the Claude Code sessions, which are in the `.txt` files above.
+- **Automatic messages.** A few "user" messages were written by the tool, not by me: a continuation notice at 11:56 and a context summary at 18:14, when the conversation ran out of context. One background task notification (after the 12:24 message) is kept as raw text.
+- **What it shows.** I wrote the 12 design decisions and the 8 weights in this conversation at 12:57 and 13:07, before the Claude Code session started (its first reply finished at 13:22). The advisor's checks are also here, for example when it found wrong counts in Claude Code's catalog report (9 surgical procedures instead of 8, 59 diagnosis–procedure pairs instead of 64).
+
+## Independent review
+
+`2026-10-25-235231-local-command-caveatthe-command-below-was-run-d.txt` (41,856 bytes, exported at 23:52) is the `/export` of a separate Claude Code session that reviewed the repository after Task 19, at commit `2ac2cd4`. It was told to read and run only, never to edit the repo, and not to trust the README or other docs. It worked in clones outside the repository. Its checks covered the rules, scoring, ground-truth isolation, generator independence, metrics, a mutation test of each rule boundary, reproducibility (SHA-256), the README numbers and malformed input. The review brief and the final report are in Vietnamese.
+
+Like the other exports, it is copied byte for byte and tool output is folded. Its file name comes from how `/export` names a file: the session began with a `/clear`, so the name starts with that command's caveat text instead of `cd-…`. Its findings are reported as found. This log does not record which of them were fixed later; see the git history for that.

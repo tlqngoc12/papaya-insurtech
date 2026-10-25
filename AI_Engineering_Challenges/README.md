@@ -634,7 +634,7 @@ These times are **not** pure coding time. Each one includes the time Claude Code
 
 | Phase | Commits | From → to | Duration |
 |---|---|---|---:|
-| Design (before the first commit) | none | 11:56 → about 14:35 (from the timestamps of my advisor chat, not from git) | about 2 h 40 min |
+| Design (before the first commit) | none | 11:56 → about 14:35 (from the timestamps of my advisor chat, `docs/ai-log/advisor-chat-log-2026-10-25.md`, not from git) | about 2 h 40 min |
 | Skeleton, catalog, config, CSV reader (Tasks 01–04, plus 2 setup commits) | `eb2fc4b` … `98cb920` | about 14:35 → 16:14 (first commit 14:51) | about 1 h 40 min |
 | Index and 8 rules (Tasks 05–10) | `7bda7e6` … `72d5303` | 16:14 → 16:56 | 42 min |
 | Scoring, ranking, `score` command (Task 11) | `e79b499` | 16:56 → 17:06 | 10 min |
@@ -661,13 +661,14 @@ The challenge asks us to use AI coding tools. I used two Claude sources.
 - Wrote the code, the tests, the generator and the reports, one task at a time.
 - Wrote first drafts of the docs: the design-decision options (`docs/design-decisions.md`), the generator spec, the limitations and this README.
 - Logs: `docs/ai-log/` (raw `/export` files, not edited).
+- After Task 19, a separate Claude Code session reviewed the finished repository without editing it. Its `/export` is also in `docs/ai-log/` (see "Independent review" in [`docs/ai-log/README.md`](docs/ai-log/README.md)).
 
 **2. A separate Claude conversation, used as an advisor.**
 
 - Reviewed Claude Code's output.
 - Helped me write the prompts for each task.
 - Helped draft the design decisions.
-- Its log is added to `docs/ai-log/`.
+- Its log is [`docs/ai-log/advisor-chat-log-2026-10-25.md`](docs/ai-log/advisor-chat-log-2026-10-25.md) (11:56–20:33 on 25 October). How it was exported and what was left out is explained in [`docs/ai-log/README.md`](docs/ai-log/README.md).
 
 **Where `docs/design-decisions.md` came from.** Claude Code wrote the structure of the file: the issues, the options and one recommendation for each. Before that, in my own notes, I had already decided 12 points and the 8 weights (you can see this in the advisor conversation log). The choices there are mine. The reasons for the duplicate choice, the plan to try median/MAD, the phantom-billing choice, the threshold rule and the FPR definition are in my own words. For the other reasons, the advisor conversation suggested the wording and I accepted or edited it. I then asked the advisor to copy my decisions into Claude Code's file and to draft the remaining ones. Those drafts are marked `[ĐỀ XUẤT, CẦN XÁC NHẬN]` until I confirmed them.
 

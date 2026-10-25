@@ -1,0 +1,641 @@
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   C:\Users\Zen
+
+
+❯ /clear                                                                        
+
+❯ Bạn là reviewer độc lập, khó tính, đọc repo này lần đầu. Chỉ đọc và chạy      
+  lệnh. KHÔNG sửa file nào trong repo, KHÔNG commit. Không tin README.md,       
+  docs/PROGRESS.md hay lời nhận xét nào trong repo: mọi khẳng định phải tự kiểm 
+  chứng bằng mã nguồn hoặc bằng cách chạy.                                      
+                                                                                
+  Bối cảnh: D:/working/repositories/papaya-insurtech/AI_Engineering_Challenges/ 
+  là bài take-home Challenge 10 (Fraud Detection Scoring Engine). Đề gốc:       
+  docs/AI_Challenge_10.md. Quyết định thiết kế: docs/design-decisions.md (phụ   
+  lục ưu tiên hơn phần thân). Tag frozen-before-heldout đánh dấu thời điểm đóng 
+  băng rule, trọng số, tham số, T, generator.                                   
+                                                                                
+  Kiểm tra theo thứ tự, báo từng mục:                                           
+  1. Từng rule trong engine/rules so với design-decisions.md và đề: logic, biên 
+  (strict hay inclusive), khoá nhóm, thứ tự "lần nộp sau", xử lý SD = 0, nhóm   
+  nhỏ, lịch sử ngắn, evidence có đúng số liệu không.                            
+  2. Chấm điểm và xếp hạng: công thức số nguyên làm tròn half-up, phá hoà, một  
+  rule chỉ cộng một lần, tính tất định (không lặp qua HashMap/HashSet để ghi    
+  output).                                                                      
+  3. Cách ly ground truth: engine và lệnh score có đọc nhãn ở đâu không (kể cả  
+  gián tiếp qua generator hay config); GroundTruthIsolationTest có bắt được các 
+  cách đọc gián tiếp không.                                                     
+  4. Generator độc lập với engine: có dùng chung ngưỡng, tham số hay kết quả    
+  rule không; có lọc hay sinh lại dựa trên kết quả engine không.                
+  5. Metrics và tune: confusion matrix, FPR, FDR, recall theo pattern,          
+  precision theo rule, precision@k, ThresholdSelector (kể cả điều kiện hoà),    
+  tune từ chối ghi đè.                                                          
+  6. Chất lượng test: chọn 8 điều kiện biên quan trọng (mỗi rule một điều       
+  kiện). Với mỗi điều kiện, trong MỘT BẢN SAO của repo nằm NGOÀI thư mục repo   
+  (không sửa repo thật), đổi điều kiện đó (ví dụ > thành >=), chạy mvn -q test  
+  và báo test nào đỏ. Điều kiện nào đổi mà không test nào đỏ thì ghi là lỗ hổng 
+  test.                                                                         
+  7. Tái lập: clone repo sạch vào thư mục tạm, mvn -q package, chạy all --seed  
+  2024 --config config/frozen-config.json và so SHA-256 với README mục 2; chạy  
+  lại hai lần để kiểm tra giống hệt.                                            
+  8. README và tài liệu so với thực tế: mọi con số trong README mục 1, 5, 6 có  
+  khớp reports/heldout/metrics.json, reports/tuning/metrics.json và             
+  reports/stability/summary.md không; liên kết, lệnh, tên file có đúng không;   
+  design-decisions.md, limitations.md và README có mâu thuẫn nhau không.        
+  9. Độ bền: dữ liệu đầu vào lỗi (CSV thiếu cột, ngày sai, tiền âm, mã lạ, file 
+  rỗng), đường dẫn Windows và Linux, ký tự Unicode.                             
+                                                                                
+  Kết quả: một danh sách phát hiện xếp theo mức độ (nghiêm trọng, trung bình,   
+  nhỏ), mỗi mục có: file và dòng, bằng chứng (lệnh đã chạy hoặc đoạn mã), vì    
+  sao sai, đề xuất sửa. Cuối cùng một đoạn kết luận: có lỗi nào làm sai số      
+  trong README không. Nêu rõ mục nào bạn không kiểm tra được. Dừng, không sửa.  
+
+● Mình bắt đầu review nhé 🔍 Trước tiên xem cấu trúc repo.
+
+  Read 2 files, ran 6 shell commands (ctrl+o to expand)
+
+● Đang đọc mã nguồn (rule, engine, config xong), tiếp theo là IO, metrics và CLI
+  📖
+
+  Ran 8 shell commands (ctrl+o to expand)
+
+● Đã đọc xong rule/engine/metrics/generator. Giờ mình clone repo sạch ra thư mục
+  tạm để build, chạy test và thử đột biến 🧪
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Build + 193 test xanh. Giờ đọc README để biết lệnh tái lập và các con số cần
+  đối chiếu 📄
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Tái lập khớp 100% với README ✅. Tiếp tục tái lập tune, tuning report và 5
+  seed ổn định.
+
+● Bash(J="java -jar target/fraud-engine.jar"; $J tune --claims
+      data/tuning/claims.csv --ground-truth data/tuning/ground_truth.csv --out
+      out/tune/frozen-config.json; sh…)
+  ⎿  Selected T = 7: recall 98.0%, FPR 3.3% (TP 196, FP 60, FN 4, TN 1740)
+     Frozen config: out\tune\frozen-config.json
+     Sweep:         C:\Users\Zen\AppData\Local\Temp\claude\C--Users-Zen\360
+     … +34 lines (ctrl+o to expand)
+  ⎿  Shell cwd was reset to 
+     C:\Users\Zen\AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994
+     -a2b6-1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges
+  ⎿  Created AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6
+     -1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges\out\stab\see
+     d-101\metrics.json (+325 -0)
+        1 +{                                                             
+        2 +  "inputs": {                                                 
+        3 +    "seed": "101",                                            
+        4 +    "claims_sha256": "50aaaeb33c8de53a569adffbdee2685a4b980458
+          +d1b919c129f83c3ea97f4e22",                                    
+        5 +    "config_sha256": "114e7f8a62011c34026380ab8dcf44987afa41d4
+          +bf4054826c5098deb52e9cb0"                                     
+        6 +  },                                                          
+        7 +  "threshold": 7,                                             
+        8 +  "confusion": {                                              
+        9 +    "threshold": 7,                                           
+       10 +    "tp": 196,                                                
+       11 +    "fp": 72,                                                 
+       12 +    "fn": 4,                                                  
+       13 +    "tn": 1728,                                               
+       14 +    "precision": 0.7313432835820896,                          
+       15 +    "recall": 0.98,                                           
+       16 +    "fpr_standard": 0.04,                                     
+       17 +    "fdr": 0.26865671641791045,                               
+       18 +    "f1": 0.8376068376068375                                  
+       19 +  },                                                          
+       20 +  "targets": {                                                
+       21 +    "recall_at_least_70": true,                               
+       22 +    "fpr_standard_at_most_20": true,                          
+       23 +    "fdr_at_most_20": false                                   
+       24 +  },                                                          
+       25 +  "recall_by_group": [                                        
+       26 +    {                                                         
+       27 +      "group": "reference_table",                             
+       28 +      "patterns": [                                           
+       29 +        "duplicate_claim",                                    
+       30 +        "unbundling",                                         
+       31 +        "diagnosis_procedure_mismatch"                        
+       32 +      ],                                                      
+       33 +      "claims": 75,                                           
+       34 +      "caught": 75,                                           
+       35 +      "recall": 1.0                                           
+       36 +    },                                                        
+       37 +    {                                                         
+       38 +      "group": "statistical",                                 
+       39 +      "patterns": [                                           
+       40 +        "rapid_resubmission",                                 
+     … 285 more lines (ctrl+o to expand)
+  ⎿  Created AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6
+     -1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges\out\stab\see
+     d-101\metrics_report.md (+130 -0)
+        1 +# Metrics report                                              
+        2 +                                                              
+        3 +Generated by `evaluate`. Every number below is computed by the
+          + program from the files listed here.                          
+        4 +                                                              
+        5 +## Inputs                                                     
+        6 +                                                              
+        7 +| Item | Value |                                              
+        8 +|---|---|                                                     
+        9 +| Seed | 101 |                                                
+       10 +| Claims file | `claims.csv` |                                
+       11 +| Claims SHA-256 | `50aaaeb33c8de53a569adffbdee2685a4b980458d1
+          +b919c129f83c3ea97f4e22` |                                     
+       12 +| Config file | `frozen-config.json` |                        
+       13 +| Config SHA-256 | `114e7f8a62011c34026380ab8dcf44987afa41d4bf
+          +4054826c5098deb52e9cb0` |                                     
+       14 +| Threshold T | 7 |                                           
+       15 +| Claims | 2000 (200 fraud, 1800 legit) |                     
+       16 +                                                              
+       17 +## Definitions                                                
+       18 +                                                              
+       19 +- A claim is **predicted fraud** when `risk_score >= T`.      
+       20 +- **Precision** = TP / (TP + FP). **Recall** = TP / (TP + FN).
+          + **F1** = 2PR / (P + R).                                      
+       21 +- **FPR (standard)** = FP / (FP + TN): false positives over al
+          +l legit claims. This is the primary reading of the challenge t
+          +arget (M1).                                                   
+       22 +- **FDR** = FP / (TP + FP) = 1 - precision: false positives ov
+          +er flagged claims. Reported because the challenge's "false pos
+          +itive rate" can also be read this way.                        
+       23 +- **Recall by pattern**: claims of a fraud pattern that score 
+          +at least T. *Flagged by own rule* counts the claims of that pa
+          +ttern that carry the rule of the same name, whatever their sco
+          +re.                                                           
+       24 +- **Precision by rule**: over the claims carrying a flag of th
+          +e rule (whatever their score), the share that is fraud of any 
+          +pattern, and the share that is fraud of the pattern of the sam
+          +e name.                                                       
+       25 +- **precision@k**: share of fraud among the top k claims of a 
+          +ranking.                                                      
+       26 +                                                              
+       27 +## Confusion matrix at T = 7                                  
+       28 +                                                              
+       29 +| | Predicted fraud | Predicted legit |                       
+       30 +|---|---:|---:|                                               
+       31 +| **Fraud** | TP = 196 | FN = 4 |                             
+       32 +| **Legit** | FP = 72 | TN = 1728 |                           
+       33 +                                                              
+       34 +## Headline against the targets                               
+       35 +                                                              
+       36 +| Metric | Value | Target | Result |                          
+       37 +|---|---:|---|---|                                            
+       38 +| Recall | 98.0% | >= 70% | PASS |                            
+       39 +| FPR (standard, FP / legit) | 4.0% | <= 20% | PASS |         
+       40 +| FDR (FP / flagged) | 26.9% | <= 20% (alternative reading) | 
+          +FAIL |                                                        
+     … 90 more lines (ctrl+o to expand)
+  ⎿  Created AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6
+     -1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges\out\stab\see
+     d-102\metrics.json (+324 -0)
+        1 +{                                                             
+        2 +  "inputs": {                                                 
+        3 +    "seed": "102",                                            
+        4 +    "claims_sha256": "28091bed6b8f5396990dcf67b2b37b1dee4ac4d4
+          +4dd6b49beb3a07ffb9339070",                                    
+        5 +    "config_sha256": "114e7f8a62011c34026380ab8dcf44987afa41d4
+          +bf4054826c5098deb52e9cb0"                                     
+        6 +  },                                                          
+        7 +  "threshold": 7,                                             
+        8 +  "confusion": {                                              
+        9 +    "threshold": 7,                                           
+       10 +    "tp": 195,                                                
+       11 +    "fp": 70,                                                 
+       12 +    "fn": 5,                                                  
+       13 +    "tn": 1730,                                               
+       14 +    "precision": 0.7358490566037735,                          
+       15 +    "recall": 0.975,                                          
+       16 +    "fpr_standard": 0.03888888888888889,                      
+       17 +    "fdr": 0.2641509433962264,                                
+       18 +    "f1": 0.8387096774193549                                  
+       19 +  },                                                          
+       20 +  "targets": {                                                
+       21 +    "recall_at_least_70": true,                               
+       22 +    "fpr_standard_at_most_20": true,                          
+       23 +    "fdr_at_most_20": false                                   
+       24 +  },                                                          
+       25 +  "recall_by_group": [                                        
+       26 +    {                                                         
+       27 +      "group": "reference_table",                             
+       28 +      "patterns": [                                           
+       29 +        "duplicate_claim",                                    
+       30 +        "unbundling",                                         
+       31 +        "diagnosis_procedure_mismatch"                        
+       32 +      ],                                                      
+       33 +      "claims": 75,                                           
+       34 +      "caught": 75,                                           
+       35 +      "recall": 1.0                                           
+       36 +    },                                                        
+       37 +    {                                                         
+       38 +      "group": "statistical",                                 
+       39 +      "patterns": [                                           
+       40 +        "rapid_resubmission",                                 
+     … 284 more lines (ctrl+o to expand)
+  ⎿  Created AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6
+     -1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges\out\stab\see
+     d-102\metrics_report.md (+130 -0)
+        1 +# Metrics report                                              
+        2 +                                                              
+        3 +Generated by `evaluate`. Every number below is computed by the
+          + program from the files listed here.                          
+        4 +                                                              
+        5 +## Inputs                                                     
+        6 +                                                              
+        7 +| Item | Value |                                              
+        8 +|---|---|                                                     
+        9 +| Seed | 102 |                                                
+       10 +| Claims file | `claims.csv` |                                
+       11 +| Claims SHA-256 | `28091bed6b8f5396990dcf67b2b37b1dee4ac4d44d
+          +d6b49beb3a07ffb9339070` |                                     
+       12 +| Config file | `frozen-config.json` |                        
+       13 +| Config SHA-256 | `114e7f8a62011c34026380ab8dcf44987afa41d4bf
+          +4054826c5098deb52e9cb0` |                                     
+       14 +| Threshold T | 7 |                                           
+       15 +| Claims | 2000 (200 fraud, 1800 legit) |                     
+       16 +                                                              
+       17 +## Definitions                                                
+       18 +                                                              
+       19 +- A claim is **predicted fraud** when `risk_score >= T`.      
+       20 +- **Precision** = TP / (TP + FP). **Recall** = TP / (TP + FN).
+          + **F1** = 2PR / (P + R).                                      
+       21 +- **FPR (standard)** = FP / (FP + TN): false positives over al
+          +l legit claims. This is the primary reading of the challenge t
+          +arget (M1).                                                   
+       22 +- **FDR** = FP / (TP + FP) = 1 - precision: false positives ov
+          +er flagged claims. Reported because the challenge's "false pos
+          +itive rate" can also be read this way.                        
+       23 +- **Recall by pattern**: claims of a fraud pattern that score 
+          +at least T. *Flagged by own rule* counts the claims of that pa
+          +ttern that carry the rule of the same name, whatever their sco
+          +re.                                                           
+       24 +- **Precision by rule**: over the claims carrying a flag of th
+          +e rule (whatever their score), the share that is fraud of any 
+          +pattern, and the share that is fraud of the pattern of the sam
+          +e name.                                                       
+       25 +- **precision@k**: share of fraud among the top k claims of a 
+          +ranking.                                                      
+       26 +                                                              
+       27 +## Confusion matrix at T = 7                                  
+       28 +                                                              
+       29 +| | Predicted fraud | Predicted legit |                       
+       30 +|---|---:|---:|                                               
+       31 +| **Fraud** | TP = 195 | FN = 5 |                             
+       32 +| **Legit** | FP = 70 | TN = 1730 |                           
+       33 +                                                              
+       34 +## Headline against the targets                               
+       35 +                                                              
+       36 +| Metric | Value | Target | Result |                          
+       37 +|---|---:|---|---|                                            
+       38 +| Recall | 97.5% | >= 70% | PASS |                            
+       39 +| FPR (standard, FP / legit) | 3.9% | <= 20% | PASS |         
+       40 +| FDR (FP / flagged) | 26.4% | <= 20% (alternative reading) | 
+          +FAIL |                                                        
+     … 90 more lines (ctrl+o to expand)
+  ⎿  Created AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6
+     -1ac0c08d4254\scratchpad\clean1\AI_Engineering_Challenges\out\stab\see
+     d-103\metrics.json (+324 -0)
+        1 +{                                                             
+        2 +  "inputs": {                                                 
+        3 +    "seed": "103",                                            
+        4 +    "claims_sha256": "93946d82d74ccb6457a137f87edf9c9e7ea989a3
+          +62d8b566258afd4dc1cc4077",                                    
+        5 +    "config_sha256": "114e7f8a62011c34026380ab8dcf44987afa41d4
+          +bf4054826c5098deb52e9cb0"                                     
+        6 +  },                                                          
+        7 +  "threshold": 7,                                             
+        8 +  "confusion": {                                              
+        9 +    "threshold": 7,                                           
+       10 +    "tp": 197,                                                
+       11 +    "fp": 83,                                                 
+       12 +    "fn": 3,                                                  
+       13 +    "tn": 1717,                                               
+       14 +    "precision": 0.7035714285714286,                          
+       15 +    "recall": 0.985,                                          
+       16 +    "fpr_standard": 0.04611111111111111,                      
+       17 +    "fdr": 0.29642857142857143,                               
+       18 +    "f1": 0.8208333333333334                                  
+       19 +  },                                                          
+       20 +  "targets": {                                                
+       21 +    "recall_at_least_70": true,                               
+       22 +    "fpr_standard_at_most_20": true,                          
+       23 +    "fdr_at_most_20": false                                   
+       24 +  },                                                          
+       25 +  "recall_by_group": [                                        
+       26 +    {                                                         
+       27 +      "group": "reference_table",                             
+       28 +      "patterns": [                                           
+       29 +        "duplicate_claim",                                    
+       30 +        "unbundling",                                         
+       31 +        "diagnosis_procedure_mismatch"                        
+       32 +      ],                                                      
+       33 +      "claims": 75,                                           
+       34 +      "caught": 75,                                           
+       35 +      "recall": 1.0                                           
+       36 +    },                                                        
+       37 +    {                                                         
+       38 +      "group": "statistical",                                 
+       39 +      "patterns": [                                           
+       40 +        "rapid_resubmission",                                 
+     … 284 more lines (ctrl+o to expand)
+  ⎿  … 26 more files changed
+  ⎿  (timeout 10m)
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Đang kiểm tra tính tất định (HashMap/HashSet) trong generator, sau đó sang
+  phần chạy đột biến 🔬
+
+  Made 1 scratchpad edit +91, ran 2 shell commands (ctrl+o to expand)
+
+● Đột biến đang chạy nền (~15 phút). Trong lúc đó mình thử độ bền với dữ liệu
+  lỗi 🧱
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Xác nhận được: đường dẫn Windows có khoảng trắng chạy ổn, nhưng đường dẫn
+  tiếng Việt bị lỗi do JVM dùng Cp1252. Giờ tôi sẽ kiểm chứng lại số liệu trong
+  evidence của toàn bộ output held-out bằng một script độc lập.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Chuẩn bị thử “lách” GroundTruthIsolationTest trên một bản clone riêng 🕵️
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Cả hai cách rò nhãn gián tiếp đều lọt qua test kiến trúc ⚠️. Trong lúc chờ đột
+  biến, mình đọc limitations.md để đối chiếu mâu thuẫn tài liệu.
+
+  Read 1 file, ran 2 shell commands (ctrl+o to expand)
+
+● Đột biến: 9/22 đã chạy, tất cả bị test bắt. Trong lúc chờ, mình chạy nguyên
+  văn các lệnh ở README mục 2.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Chờ các đột biến còn lại (X4–X14) chạy xong ⏳
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Background command "Run mutation tests on repo copy in background" completed
+(exit code 0)
+
+● Cả 22 đột biến đều bị bắt 👍. Mình thử thêm một lượt đột biến “tinh” hơn
+  (evidence, SD mẫu, is_weekend, tie-break) để dò lỗ hổng test.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Lượt 2: 2 đột biến sống sót, đều ở metrics (precision theo rule, recall theo
+  pattern). Kiểm tra thêm vài ca lỗi ở evaluate và evidence z sát ngưỡng.
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Báo cáo review Challenge 10 (Fraud Detection Scoring Engine)
+
+  Mình không sửa gì trong repo thật. Mọi lệnh build, đột biến và chạy thử đều
+  làm trên các bản clone trong scratchpad. Kết quả ngắn gọn: không tìm thấy lỗi 
+  nghiêm trọng nào. Mọi con số trong README mục 1, 5, 6 khớp với file và tái lập
+  được giống từng byte. Có 5 phát hiện mức trung bình và 12 phát hiện nhỏ.
+
+  Kết quả theo từng mục
+
+  #: 1
+  Mục: Rule
+  Kết quả: 8 rule khớp thiết kế: biên (<= 7, z > 2, > 30, < 5%, khoảng
+  47.500–49.999), khoá nhóm, thứ tự (ngày, claim_id), SD = 0, nhóm nhỏ (n <
+  10), leave-one-out và lịch sử ≥ 20. Mình viết lại bằng Python độc lập 6 rule
+  cùng điểm số và thứ tự xếp hạng, rồi chạy trên 2.000 claim held-out: 0 lệch, 
+  274 flag, 0 lỗi số liệu trong evidence. Có 3 chỗ lệch thiết kế (TB4, N1, N2).
+  ────────────────────────────────────────
+  #: 2
+  Mục: Chấm điểm, xếp hạng
+  Kết quả: (200S + W) / (2W) đúng là làm tròn half-up. Một rule cộng hai lần thì
+
+  ném lỗi. Xếp hạng là thứ tự toàn phần. HashMap/HashSet chỉ dùng để tra cứu,
+  không dùng để lặp khi ghi output. Generator dùng TreeMap.
+  ────────────────────────────────────────
+  #: 3
+  Mục: Cách ly nhãn
+  Kết quả: Mã engine sạch: FraudEngine.run(List<Claim>) chỉ nhận 10 cột, file có
+
+  header chứa is_fraud bị từ chối, config có khoá lạ thì báo lỗi. Nhưng  test 
+  cách ly có lỗ hổng (TB1).
+  ────────────────────────────────────────
+  #: 4
+  Mục: Generator độc lập
+  Kết quả: Generator không import engine hay config, không gọi rule, không lọc
+  theo kết quả engine. Việc rút lại lựa chọn chỉ dựa trên ràng buộc riêng của
+  generator. Tuy vậy các giá trị ngưỡng được chép lại trong config của
+  generator (N8).
+  ────────────────────────────────────────
+  #: 5
+  Mục: Metrics, tune
+  Kết quả: Mình tự tính lại confusion matrix, FPR, FDR, precision@50 và cách
+  chọn
+  T: khớp, T = 7. tune từ chối ghi đè khi thiếu --force (exit 1). Có 2 lỗ hổng
+  test ở phần metrics (TB5).
+  ────────────────────────────────────────
+  #: 6
+  Mục: Chất lượng test
+  Kết quả: Mỗi rule một đột biến biên, cả 8 đều bị bắt; xem bảng bên dưới.
+  ────────────────────────────────────────
+  #: 7
+  Mục: Tái lập
+  Kết quả: Clone sạch, mvn -q package chạy 193 test trong 37 class, xanh hết.
+  Chạy all --seed 2024 hai lần: 4 file giống từng byte và khớp SHA-256 ở
+  README. Chạy lại tune, tuning, 5 seed ổn định và StabilitySummary: tất cả
+  giống hệt bản đã commit.
+  ────────────────────────────────────────
+  #: 8
+  Mục: README và tài liệu
+  Kết quả: Mọi con số mục 1, 5, 6 khớp metrics.json và summary.md. Các lệnh mẫu
+  chạy đúng. Lỗi nằm ở tài liệu: TB3, N7–N10.
+  ────────────────────────────────────────
+  #: 9
+  Mục: Độ bền
+  Kết quả: BOM, CRLF, Unicode trong dữ liệu, dấu phẩy trong ngoặc kép, đường dẫn
+
+  Windows có dấu cách đều ổn. Lỗi ở TB2 và N3–N5, N12.
+
+  Mục 6: đột biến biên (bản sao ngoài repo, chạy mvn -q test)
+
+  Đột biến: Duplicate bỏ điều kiện cùng provider
+  Test đỏ:
+  DuplicateClaimRuleTest.differentDiagnosisProviderOrDateIsNotADuplicate
+  cùng 1 test khác
+  ────────────────────────────────────────
+  Đột biến: Rapid <= thành <
+  Test đỏ: RapidResubmissionRuleTest.sevenDaysLaterIsFlaggedAtTheWindowBoundary
+  ────────────────────────────────────────
+  Đột biến: Upcoding > thành >=
+  Test đỏ: UpcodingRuleTest.zOfExactlyTwoIsNotFlagged
+  ────────────────────────────────────────
+  Đột biến: Unbundling chấp nhận thiếu một thành phần
+  Test đỏ: UnbundlingRuleTest.missingOneComponentIsNotFlagged cùng 3 test khác
+  ────────────────────────────────────────
+  Đột biến: Phantom <= thành <
+  Test đỏ: PhantomBillingRuleTest.flagsEveryClaimOfTheDayOnlyAboveThirty[1]
+  ────────────────────────────────────────
+  Đột biến: Weekend < thành <=
+  Test đỏ: WeekendAnomalyRuleTest.ratioAndHistoryBoundaries[1]
+  ────────────────────────────────────────
+  Đột biến: Mismatch "một procedure sai" thành "tất cả sai"
+  Test đỏ: DiagnosisProcedureMismatchRuleTest.anyInvalidProcedure...
+  ────────────────────────────────────────
+  Đột biến: Clustering 47.500 thành biên loại trừ
+  Test đỏ: AmountClusteringRuleTest.bandIsInclusiveOnBothEnds[1]
+
+  Mình chạy thêm 14 đột biến cho biên còn lại, leave-one-out, làm tròn, phá hoà,
+  ThresholdSelector và thứ tự D14: đều bị bắt. Lượt thứ hai có 11 đột biến, 2 
+  cái sống sót: Y8 và Y11, cả hai thuộc TB5. Log nằm ở
+  C:\Users\Zen\AppData\Local\Temp\claude\C--Users-Zen\360086fb-07c3-4994-a2b6-1a
+  c0c08d4254\scratchpad\mutants.log.
+
+  Các phát hiện
+
+  Nghiêm trọng
+
+  Không có.
+
+  Trung bình
+
+  TB1. Test cách ly nhãn không bắt được cách đọc nhãn gián tiếp
+  - Vị trí: src/test/.../architecture/GroundTruthIsolationTest.java:18,23 và
+    GeneratorIndependenceTest.java:32.
+  - Bằng chứng: trong một bản clone, mình thêm vào ScoringPipeline hai cách đọc
+    nhãn:
+    - đọc file qua đường dẫn ghép "ground" + "_truth.csv";
+    - lấy nhãn qua generator: new 
+      DatasetGenerator(...).generate(2024L).groundTruth().
+
+    Chạy mvn -q test -Dtest=GroundTruthIsolationTest,GeneratorIndependenceTest:
+    5 test, 0 failure.
+  - Vì sao sai: test chỉ dò token phân biệt hoa thường, nên "GroundTruth" không
+    khớp groundTruth(). Phép kiểm tra phụ thuộc vào generator chỉ quét engine,
+    config, io, bỏ sót pipeline, cli và model. Không có kiểm tra engine import
+    metrics.
+  - Đề xuất:
+    - Quét import và tên đầy đủ: cấm com.papaya.fraud.generator và
+      com.papaya.fraud.metrics ở mọi package trừ các lệnh được phép.
+    - Dò token không phân biệt hoa thường.
+    - Thêm test hành vi: chạy score khi có và khi không có ground_truth.csv cạnh
+      file claims (hoặc khi file đó là rác), rồi so output phải giống từng
+      byte.
+
+  TB2. score thoát với mã 0 và ghi [] khi không đọc được dữ liệu nào
+  - Vị trí: ClaimCsvReader.java:68-77, ScoreCommand.java:46,59.
+  - Bằng chứng: file rỗng, file chỉ có header, file thiếu cột và file có cột
+    is_fraud đều cho exit=0 và output []. Với header sai, màn hình in "Claims
+    read: 1 (1 rejected)", tức dòng header bị đếm như một claim. File rỗng thì
+    không có cảnh báo nào.
+  - Vì sao sai: câu "the claims reader refuses a file with a label column" ở
+    README:193 chỉ đúng một nửa, vì lệnh vẫn báo thành công. Pipeline tự động sẽ
+    không phát hiện ra.
+  - Đề xuất: coi header sai và file rỗng là lỗi (exit 1), không đếm header là
+    claim.
+
+  TB3. Lệnh kiểm chứng đóng băng trong README không in ra gì khi chạy đúng như 
+  hướng dẫn
+  - Vị trí: README.md:328 so với README.md:75 ("Run every command from
+    AI_Engineering_Challenges/").
+  - Bằng chứng: chạy từ thư mục con thì output rỗng. Chạy từ gốc repo thì liệt
+    kê 4 file.
+  - Vì sao sai: output rỗng trông như "không có thay đổi nào", tức phép kiểm tra
+    lặng lẽ "đạt".
+  - Đề xuất: dùng git -C .. diff ... hoặc đổi pathspec thành src/main config 
+    data/tuning.
+
+  TB4. Mã chung bị giới hạn theo claim type, lệch Q14 (phụ lục được ưu tiên)
+  - Vị trí: Catalog.java:116, so với design-decisions.md:695 ("hợp lệ với mọi
+    chẩn đoán") và README:207, 561 ("plus 2 general codes").
+  - Bằng chứng: claim K35.8 + P-0002 bị flag diagnosis_procedure_mismatch. Quy
+    ước này chỉ được ghi ở docs/PROGRESS.md:108.
+  - Ảnh hưởng: không làm đổi số liệu, vì generator không bao giờ sinh tổ hợp
+    này.
+  - Đề xuất: ghi thành quyết định trong phụ lục, hoặc làm đúng như Q14.
+
+  TB5. Hai lỗ hổng test ở metrics (đột biến Y8, Y11 sống sót)
+  - Vị trí: MetricsCalculator.java:110 (đổi fraud_any_pattern thành chỉ đếm cùng
+    pattern) và MetricsCalculator.java:85 (đổi "caught" từ "score ≥ T" thành
+    "có flag của chính rule đó").
+  - Vì sao sai: không có test nào cho claim gian lận bị rule khác bắt, kiểu
+    CLM-01472. Số 24/23 ở README chỉ đúng vì mình đã kiểm tra tay.
+  - Đề xuất: thêm fixture có flag chéo pattern và một trường hợp T lớn hơn điểm
+    của rule.
+
+  Nhỏ
+
+  - N1. DiagnosisProcedureMismatchRule.java:48 bỏ qua procedure không có trong
+    danh mục. R8-A và Q14 ghi "bất kỳ procedure nào không hợp lệ thì flag", và
+    quy ước bỏ qua chỉ được ghi ở PROGRESS. Kẻ gian có thể né rule bằng một mã
+    lạ. Đề xuất: ghi quyết định này vào design-decisions hoặc limitations.
+  - N2. DatasetIndex.java:118-119 và UpcodingRule.java:74 dùng tập mã đã bỏ
+    trùng, nên claim P-1001|P-1001 được coi là "một procedure", trong khi Q1 nói
+    "đúng một". Reader lại không cảnh báo mã trùng trong một claim.
+  - N3. DatasetIndex.java:26-27 so claim_id theo thứ tự từ điển. Bằng chứng:
+    CLM-9 bị flag là "Duplicate of CLM-10". Chỉ đúng khi ID có đệm số 0. Đề
+    xuất: ghi giả định hoặc kiểm tra định dạng ID.
+  - N4. ClaimCsvReader.java:134,149 nhận ngày 2031-06-01 (ngoài năm 2024) và
+    +48000 mà không cảnh báo gì.
+  - N5. Evaluation.java:106-107 ghi scored_claims.json trước, rồi mới từ chối vì
+    có dòng bị loại. Kết quả là exit 1 nhưng vẫn để lại file.
+  - N6. UpcodingRule.java:55 in z với %.2f, nên z trong khoảng (2; 2,005) sẽ
+    hiện "2.00 … threshold z > 2.0". Trong dữ liệu hiện tại chưa xảy ra (z nhỏ
+    nhất in ra là 2,04).
+  - N7. README:64 và 538 xếp weekend vào nhóm "table-based". L10,
+    REFERENCE_TABLE_PATTERNS và chính README mục 6 lại xếp weekend vào nhóm
+    thống kê.
+  - N8. README:293 nói generator dùng chung với engine "nothing else" là nói
+    quá. generator-config.json chép lại giá trị ngưỡng của engine:
+    - khoảng tiền 47.500–49.999;
+    - cửa sổ 7 ngày dùng để giữ claim cô lập, near-miss 8 ngày;
+    - near-miss 47.000–47.499 và 50.000–50.500;
+    - ngày phantom 25 + 6 claim và ngày có đúng 30 claim.
+
+    Test (GeneratorIndependenceTest.java:37) chỉ so tên khoá, không so giá trị.
+    L5, L12 và L14 đã thừa nhận một phần.
+  - N9. README:670 nói log advisor "is added to docs/ai-log/", nhưng file
+    advisor-chat-log-2026-10-25.md chưa được commit (untracked) và không có
+    trong clone sạch. README:637 lại dựa vào log này để tính timeline.
+  - N10. README:159 nhắc .gitattributes, nhưng file này nằm ở gốc repo, không
+    nằm trong AI_Engineering_Challenges/ (README:5 nói mọi đường dẫn tính từ thư
+    mục đó).
+  - N11. GroundTruthReader.java:41 dùng ký tự BOM vô hình viết thẳng trong mã,
+    trong khi ClaimCsvReader đã được sửa sang \uFEFF ở commit f915033. Dễ bị
+    editor xoá mất.
+  - N12. Trên Windows, đường dẫn có ký tự tiếng Việt báo lỗi "Illegal char <?>"
+    vì JVM dùng sun.jnu.encoding=Cp1252. Đây là giới hạn môi trường, nhưng
+    README:84 hứa chạy giống nhau trên mọi hệ điều hành. Đường dẫn có dấu cách,
+    dấu \ và ü thì chạy được.
+
+  Kết luận
+
+  Không có lỗi nào làm sai con số trong README. Cả 4 file held-out, 2 file
+  tuning, frozen config, 5 file metrics.json của các seed ổn định và summary.md
+  đều tái lập giống từng byte. Phần tính lại độc lập (rule, điểm, xếp hạng,
+  evidence, confusion matrix, chọn T) cũng khớp. Không có rule, trọng số hay
+  generator nào bị đổi sau tag frozen-before-heldout: chỉ 4 file trình bày thay
+  đổi, đúng như README khai. Điểm yếu thật nằm ở độ tin của các test bảo vệ
+  (TB1, TB5), ở cách CLI xử lý input hỏng (TB2) và ở tài liệu lệch mã hoặc lệch 
+  thực tế (TB3, TB4, N7–N10).
+
+  Những gì mình không kiểm tra được
+
+  - Linux và macOS: không có môi trường. Mình chỉ thử Windows qua Git Bash và
+    PowerShell.
+  - DatasetGenerator.java (1.351 dòng): mới đọc phần rút lại lựa chọn và các
+    pattern gian lận, chưa soát từng dòng phần near-miss và claim nền. Chưa đối
+    chiếu đầy đủ với generator-spec.md.
+  - Tính đúng y khoa của whitelist.
+  - Nội dung và SHA-256 của các file trong docs/ai-log, cùng các khẳng định về
+    timeline. Thứ tự commit thì khớp, nhưng không chứng minh được test held-out
+    "chưa chạy trước khi commit".
+  - Con số 2.414 ms của test 100.000 claim: lần chạy của mình mất 2.177 ms, vẫn
+    dưới giới hạn 30 giây.
+
+✻ Sautéed for 17m 19s · done 11:36 PM
+
+※ recap: Mục tiêu là review độc lập repo Challenge 10. Báo cáo đã xong: không có lỗi nghiêm trọng, mọi số trong README tái lập đúng từng byte, còn 5 phát hiện trung bình. Bước tiếp theo là bạn đọc báo cáo và quyết định có sửa không 🙂 (disable recaps in /config)
