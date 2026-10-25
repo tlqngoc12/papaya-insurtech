@@ -24,8 +24,13 @@ public final class ScoredOutputWriter {
     private ScoredOutputWriter() {
     }
 
+    /** Creates missing parent directories, like the other commands' writers; the bytes do not depend on it. */
     public static void write(List<ScoredClaim> ranked, Path file) {
         try {
+            Path parent = file.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             Files.write(file, toBytes(ranked));
         } catch (IOException e) {
             throw new UncheckedIOException("cannot write " + file, e);

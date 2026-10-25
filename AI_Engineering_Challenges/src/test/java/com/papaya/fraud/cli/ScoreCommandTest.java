@@ -1,6 +1,8 @@
 package com.papaya.fraud.cli;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.papaya.fraud.Main;
@@ -54,6 +56,19 @@ class ScoreCommandTest {
         assertTrue(stdout.contains("Coverage upcoding:"), stdout);
         assertTrue(stdout.contains("Time (ms):        load "), stdout);
         assertEquals("", err.toString(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void createsAMissingOutputDirectoryAndWritesTheSameBytes() throws Exception {
+        Path flat = tmp.resolve("flat.json");
+        Path nested = tmp.resolve("not/yet/there/scored_claims.json");
+        assertFalse(Files.exists(nested.getParent()));
+
+        assertEquals(0, main("score", "--claims", resource("claims.csv").toString(), "--out", flat.toString()));
+        assertEquals(0, main("score", "--claims", resource("claims.csv").toString(), "--out", nested.toString()),
+                err.toString(StandardCharsets.UTF_8));
+
+        assertArrayEquals(Files.readAllBytes(flat), Files.readAllBytes(nested));
     }
 
     @Test
