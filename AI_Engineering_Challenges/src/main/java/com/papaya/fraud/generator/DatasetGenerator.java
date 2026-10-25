@@ -1,5 +1,6 @@
 package com.papaya.fraud.generator;
 
+import com.papaya.fraud.catalog.Bundle;
 import com.papaya.fraud.catalog.Catalog;
 import com.papaya.fraud.catalog.Diagnosis;
 import com.papaya.fraud.generator.GeneratedDataset.ScenarioDay;
@@ -14,16 +15,22 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SplittableRandom;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * Builds the synthetic dataset described in {@code docs/generator-spec.md}. Never uses the engine or its config;
  * all parameters come from {@link GeneratorConfig}, reference data from {@link Catalog}.
  *
- * <p>Implemented so far (Task 12): providers, members, the reserved scenario days, the ordinary legit claims
- * (including the natural claims of the four band hosts and the chronic follow-ups), claim ids and ground truth.
+ * <p>Implemented so far: providers, members, the reserved scenario days, the ordinary legit claims (including the
+ * natural claims of the four band hosts and the chronic follow-ups) (Task 12); duplicate, rapid re-submission,
+ * upcoding and unbundling fraud (Task 13); claim ids and ground truth.
  */
 public final class DatasetGenerator {
 
@@ -33,6 +40,15 @@ public final class DatasetGenerator {
     static final String STAGE_BASE = "base";
     static final String STAGE_FOLLOWUPS = "followups";
     static final String STAGE_CLAIM_IDS = "claim_ids";
+    static final String STAGE_DUPLICATE = "fraud_duplicate";
+    static final String STAGE_RESUBMISSION = "fraud_resubmission";
+    static final String STAGE_UPCODE = "fraud_upcode";
+    static final String STAGE_UNBUNDLE = "fraud_unbundle";
+
+    static final String DUPLICATE = "duplicate_claim";
+    static final String RESUBMISSION = "rapid_resubmission";
+    static final String UPCODE = "upcoding";
+    static final String UNBUNDLE = "unbundling";
 
     static final String INPATIENT_ONLY_POOL = "inpatient_only";
 
@@ -70,6 +86,13 @@ public final class DatasetGenerator {
         Reservations reservations = reservations(StageRandom.forStage(seed, STAGE_RESERVATIONS), providers);
         List<Draft> drafts = base(StageRandom.forStage(seed, STAGE_BASE), providers, members, reservations);
         followups(StageRandom.forStage(seed, STAGE_FOLLOWUPS), drafts, reservations);
+
+        Context ctx = new Context(drafts, providers, members, reservations);
+        duplicates(StageRandom.forStage(seed, STAGE_DUPLICATE), ctx);
+        resubmissions(StageRandom.forStage(seed, STAGE_RESUBMISSION), ctx);
+        upcodes(StageRandom.forStage(seed, STAGE_UPCODE), ctx);
+        unbundles(StageRandom.forStage(seed, STAGE_UNBUNDLE), ctx);
+
         assignClaimIds(StageRandom.forStage(seed, STAGE_CLAIM_IDS), drafts);
         return output(drafts, providers, members, reservations);
     }
@@ -383,6 +406,350 @@ public final class DatasetGenerator {
             }
         }
         return null;
+    }
+
+    // ---------------------------------------------------------------- fraud patterns, shared machinery
+
+    /** State shared by the fraud stages: all drafts so far and the generator's own member-diagnosis ledger. */
+    private final class Context {
+        final List<Draft> drafts;
+        final List<ProviderProfile> providers;
+        final List<MemberProfile> members;
+        final double[] memberWeights;
+        final Reservations reservations;
+        final Ledger ledger = new Ledger();
+        final Set<Draft> usedAsSource = new HashSet<>();
+
+        Context(List<Draft> drafts, List<ProviderProfile> providers, List<MemberProfile> members,
+                Reservations reservations) {
+            this.drafts = drafts;
+            this.providers = providers;
+            this.members = members;
+            this.memberWeights = members.stream().mapToDouble(MemberProfile::weight).toArray();
+            this.reservations = reservations;
+            drafts.forEach(ledger::add);
+        }
+
+        void add(Draft d) {
+            drafts.add(d);
+            ledger.add(d);
+        }
+
+        /** Days around a claim in which no other claim of the same member and diagnosis may sit (R2 window). */
+        int isolation() {
+            return config.resubmission().gapDays().max();
+        }
+    }
+
+    /** Dates of the claims per member and diagnosis, as the generator itself placed them (no engine involved). */
+    private static final class Ledger {
+        private final Map<String, List<LocalDate>> dates = new TreeMap<>();
+
+        void add(Draft d) {
+            dates.computeIfAbsent(d.member.id() + "|" + d.diagnosis, k -> new ArrayList<>()).add(d.date);
+        }
+
+        int countWithin(String memberId, String diagnosis, LocalDate from, LocalDate to) {
+            return (int) dates.getOrDefault(memberId + "|" + diagnosis, List.of()).stream()
+                    .filter(d -> !d.isBefore(from) && !d.isAfter(to)).count();
+        }
+    }
+
+    /**
+     * An ordinary legit claim that can serve as the original of a duplicate or resubmission: unused, moderate
+     * noise (m within the fraud cap, so the copy cannot look upcoded), outside the clustering band, and alone with
+     * its member and diagnosis within the R2 window on both sides.
+     */
+    private boolean isolatedSource(Draft d, Context ctx) {
+        int w = ctx.isolation();
+        return d.pattern.equals("none") && d.scenario.equals("base") && !ctx.usedAsSource.contains(d)
+                && d.multiplier <= config.pricing().fraudNoiseCap() && !inBand(d.amount)
+                && ctx.ledger.countWithin(d.member.id(), d.diagnosis, d.date.minusDays(w), d.date.plusDays(w)) == 1;
+    }
+
+    private boolean inBand(long amount) {
+        return amount >= config.plantedAmountRange().min() && amount <= config.plantedAmountRange().max();
+    }
+
+    /** Truncated-normal multiplier also capped at fraud_noise_cap (G7). */
+    private double fraudMultiplier(SplittableRandom r) {
+        for (int attempt = 0; attempt < config.maxRedraws(); attempt++) {
+            double m = StageRandom.priceMultiplier(r, config.pricing().noiseCv(),
+                    config.pricing().noiseTruncationSigmas());
+            if (m <= config.pricing().fraudNoiseCap()) {
+                return m;
+            }
+        }
+        throw new IllegalStateException("no fraud multiplier under the cap after " + config.maxRedraws() + " draws");
+    }
+
+    /**
+     * Picks a member and date for a new fraud claim (G2: redraws only on generator constraints): the provider's
+     * date pool, never a reserved scenario day, and no other claim of that member and diagnosis within the window.
+     */
+    private void placeNewClaim(SplittableRandom r, Draft d, Context ctx) {
+        List<LocalDate> pool = d.provider.weekdayOnly() ? weekdays : allDays;
+        int w = ctx.isolation();
+        for (int attempt = 0; attempt < config.maxRedraws(); attempt++) {
+            MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
+            LocalDate date = StageRandom.pick(r, pool);
+            if (!ctx.reservations.contains(d.provider, date)
+                    && ctx.ledger.countWithin(member.id(), d.diagnosis, date.minusDays(w), date.plusDays(w)) == 0) {
+                d.member = member;
+                d.date = date;
+                return;
+            }
+        }
+        throw new IllegalStateException("cannot place a " + d.pattern + " claim after " + config.maxRedraws()
+                + " draws");
+    }
+
+    private List<Draft> shuffledSources(SplittableRandom r, Context ctx) {
+        List<Draft> sources = new ArrayList<>(ctx.drafts.stream().filter(d -> isolatedSource(d, ctx)).toList());
+        StageRandom.shuffle(r, sources);
+        return sources;
+    }
+
+    // ---------------------------------------------------------------- duplicate (R1, D9, Q15)
+
+    /** Exact copies of isolated originals; only the copy is fraud and it always gets the later claim id. */
+    private void duplicates(SplittableRandom r, Context ctx) {
+        int wanted = config.fraudCounts().duplicate();
+        int created = 0;
+        for (Draft original : shuffledSources(r, ctx)) {
+            if (created == wanted) {
+                break;
+            }
+            if (!isolatedSource(original, ctx)) {
+                continue;
+            }
+            Draft copy = new Draft(ctx.drafts.size());
+            copy.type = original.type;
+            copy.provider = original.provider;
+            copy.member = original.member;
+            copy.diagnosis = original.diagnosis;
+            copy.procedures = original.procedures;
+            copy.amount = original.amount;
+            copy.multiplier = original.multiplier;
+            copy.date = original.date;
+            copy.pattern = DUPLICATE;
+            copy.scenario = "duplicate";
+            copy.related = original;
+            copy.mustFollow = original;
+            ctx.usedAsSource.add(original);
+            ctx.add(copy);
+            created++;
+        }
+        requireCount(DUPLICATE, created, wanted);
+    }
+
+    // ---------------------------------------------------------------- rapid re-submission (R2, Q15, G8)
+
+    /**
+     * Same member and diagnosis 1-7 days after an isolated claim, at the same provider 70% of the time, with a fresh
+     * amount. Never on a weekend at a weekday-only hospital, never on a reserved day, and nothing else of that member
+     * and diagnosis within the window around the pair.
+     */
+    private void resubmissions(SplittableRandom r, Context ctx) {
+        int wanted = config.fraudCounts().resubmission();
+        GeneratorConfig.IntRange gap = config.resubmission().gapDays();
+        int w = ctx.isolation();
+        int created = 0;
+        for (Draft source : shuffledSources(r, ctx)) {
+            if (created == wanted) {
+                break;
+            }
+            if (!isolatedSource(source, ctx)) {
+                continue;
+            }
+            for (int attempt = 0; attempt < config.maxRedraws(); attempt++) {
+                LocalDate date = source.date.plusDays(gap.min() + r.nextInt(gap.max() - gap.min() + 1));
+                ProviderProfile provider = r.nextDouble() < config.resubmission().sameProviderShare()
+                        ? source.provider : otherProviderOfTier(r, source.provider, ctx);
+                boolean ok = date.getYear() == config.dataset().year()
+                        && !(provider.weekdayOnly() && ClaimCsv.isWeekend(date))
+                        && !ctx.reservations.contains(provider, date)
+                        && ctx.ledger.countWithin(source.member.id(), source.diagnosis,
+                                source.date.minusDays(w), date.plusDays(w)) == 1;
+                if (!ok) {
+                    continue;
+                }
+                Draft re = new Draft(ctx.drafts.size());
+                re.type = source.type;
+                re.provider = provider;
+                re.member = source.member;
+                re.diagnosis = source.diagnosis;
+                re.procedures = caseEntry(source.type, source.diagnosis)
+                        .map(e -> List.copyOf(template(r, e).procedures()))
+                        .orElse(source.procedures);
+                re.date = date;
+                if (!priceFraudClaim(r, re, Long.MAX_VALUE)) {
+                    continue;
+                }
+                re.pattern = RESUBMISSION;
+                re.scenario = "resubmission";
+                re.related = source;
+                ctx.usedAsSource.add(source);
+                ctx.add(re);
+                created++;
+                break;
+            }
+        }
+        requireCount(RESUBMISSION, created, wanted);
+    }
+
+    private static ProviderProfile otherProviderOfTier(SplittableRandom r, ProviderProfile provider, Context ctx) {
+        List<ProviderProfile> others = ctx.providers.stream()
+                .filter(p -> p.tier() == provider.tier() && !p.id().equals(provider.id())).toList();
+        return others.isEmpty() ? provider : StageRandom.pick(r, others);
+    }
+
+    private Optional<CaseMixEntry> caseEntry(ClaimType type, String diagnosis) {
+        return config.caseMix().get(type.name()).stream().filter(e -> diagnosis.equals(e.diagnosis())).findFirst();
+    }
+
+    /** Fresh capped noise; false if no amount below {@code cap} and outside the clustering band was found. */
+    private boolean priceFraudClaim(SplittableRandom r, Draft d, long cap) {
+        long base = basePrice(d.procedures);
+        for (int attempt = 0; attempt < config.maxRedraws(); attempt++) {
+            double m = fraudMultiplier(r);
+            long amount = Math.max(1, Math.round(base * m));
+            if (amount <= cap && !inBand(amount)) {
+                d.multiplier = m;
+                d.amount = amount;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---------------------------------------------------------------- upcoding (Q1, Q2, (c)1, G11)
+
+    /**
+     * New single-procedure claims priced at base x factor: strong U(1.5, 2.5) and mild U(1.2, 1.6). Targets only
+     * signatures with at least min_group_claims ordinary legit single-procedure claims, never a band host, at most
+     * max_per_group per signature; a factor landing the amount in the clustering band is redrawn.
+     */
+    private void upcodes(SplittableRandom r, Context ctx) {
+        GeneratorConfig.Upcode cfg = config.upcode();
+        Set<String> hostSignatures = new TreeSet<>();
+        for (BandHost h : config.bandHosts()) {
+            if (h.procedures().size() == 1) {
+                hostSignatures.add(h.procedures().get(0));
+            }
+        }
+        Map<String, List<Draft>> groups = new TreeMap<>();
+        for (Draft d : ctx.drafts) {
+            if (d.pattern.equals("none") && d.procedures.size() == 1 && !hostSignatures.contains(d.procedures.get(0))) {
+                groups.computeIfAbsent(d.procedures.get(0), k -> new ArrayList<>()).add(d);
+            }
+        }
+        groups.values().removeIf(models -> models.size() < cfg.minGroupClaims());
+        List<String> signatures = new ArrayList<>(groups.keySet());
+        Map<String, Integer> used = new TreeMap<>();
+
+        int total = cfg.strongClaims() + cfg.mildClaims();
+        for (int i = 0; i < total; i++) {
+            boolean strong = i < cfg.strongClaims();
+            GeneratorConfig.DoubleRange factor = strong ? cfg.strongFactor() : cfg.mildFactor();
+            List<String> open = signatures.stream().filter(s -> used.getOrDefault(s, 0) < cfg.maxPerGroup()).toList();
+            if (open.isEmpty()) {
+                throw new IllegalStateException("no upcoding target group left after " + i + " claims");
+            }
+            String signature = StageRandom.pick(r, open);
+            Draft model = StageRandom.pick(r, groups.get(signature));
+            Draft up = new Draft(ctx.drafts.size());
+            up.type = model.type;
+            up.provider = model.provider;
+            up.diagnosis = model.diagnosis;
+            up.procedures = model.procedures;
+            up.pattern = UPCODE;
+            up.scenario = strong ? "upcode_strong" : "upcode_mild";
+            long base = basePrice(up.procedures);
+            boolean priced = false;
+            for (int attempt = 0; attempt < config.maxRedraws() && !priced; attempt++) {
+                double f = factor.min() + r.nextDouble() * (factor.max() - factor.min());
+                long amount = Math.round(base * f);
+                if (!inBand(amount)) {
+                    up.multiplier = f;
+                    up.amount = amount;
+                    priced = true;
+                }
+            }
+            if (!priced) {
+                throw new IllegalStateException("no upcoded amount outside the clustering band for " + signature);
+            }
+            placeNewClaim(r, up, ctx);
+            used.merge(signature, 1, Integer::sum);
+            ctx.add(up);
+        }
+    }
+
+    // ---------------------------------------------------------------- unbundling (R5, (c)2, G9)
+
+    /**
+     * New claims billing every component of a bundle (full) or the bundle code with one of its components (double
+     * billing), with the bundle's own diagnosis; amount from capped noise, at most amount_cap and outside the band.
+     */
+    private void unbundles(SplittableRandom r, Context ctx) {
+        GeneratorConfig.Unbundle cfg = config.unbundle();
+        List<Bundle> bundles = catalog.bundles();
+        int total = cfg.fullComponentClaims() + cfg.bundleWithComponentClaims();
+        for (int i = 0; i < total; i++) {
+            boolean full = i < cfg.fullComponentClaims();
+            Bundle bundle = StageRandom.pick(r, bundles);
+            Draft u = new Draft(ctx.drafts.size());
+            u.diagnosis = bundleDiagnosis(bundle);
+            u.procedures = full
+                    ? List.copyOf(bundle.components())
+                    : List.of(bundle.bundleCode(), StageRandom.pick(r, bundle.components()));
+            u.type = commonClaimType(u.diagnosis, u.procedures);
+            u.provider = providerFor(r, u.type, ctx);
+            u.pattern = UNBUNDLE;
+            u.scenario = full ? "unbundle_full" : "unbundle_double_billing";
+            if (!priceFraudClaim(r, u, cfg.amountCap())) {
+                throw new IllegalStateException("no unbundled amount under " + cfg.amountCap() + " for "
+                        + bundle.bundleCode());
+            }
+            placeNewClaim(r, u, ctx);
+            ctx.add(u);
+        }
+    }
+
+    /** The first catalog diagnosis that allows the bundle code and all its components (e.g. K35.8 for P-2101). */
+    private String bundleDiagnosis(Bundle bundle) {
+        return catalog.diagnoses().stream().map(Diagnosis::code)
+                .filter(dx -> catalog.isValidPair(dx, bundle.bundleCode())
+                        && bundle.components().stream().allMatch(c -> catalog.isValidPair(dx, c)))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no diagnosis for bundle " + bundle.bundleCode()));
+    }
+
+    private ClaimType commonClaimType(String diagnosis, List<String> procedures) {
+        EnumSet<ClaimType> types = EnumSet.copyOf(catalog.diagnosis(diagnosis).orElseThrow().claimTypes());
+        for (String code : procedures) {
+            types.retainAll(catalog.procedure(code).orElseThrow().claimTypes());
+        }
+        return types.stream().findFirst()
+                .orElseThrow(() -> new IllegalStateException("no claim type for " + diagnosis + " " + procedures));
+    }
+
+    /** A provider of a tier serving the claim type, by weight (outpatient at hospitals with the configured share). */
+    private ProviderProfile providerFor(SplittableRandom r, ClaimType type, Context ctx) {
+        List<ProviderProfile> pool = switch (type) {
+            case INPATIENT -> ctx.providers.stream().filter(ProviderProfile::hospital).toList();
+            case DENTAL -> byTier(ctx.providers, Tier.DENTAL_CLINIC);
+            case OUTPATIENT -> r.nextDouble() < config.volumes().outpatientHospitalShare()
+                    ? ctx.providers.stream().filter(ProviderProfile::hospital).toList()
+                    : byTier(ctx.providers, Tier.CLINIC);
+        };
+        return pool.get(StageRandom.weightedIndex(r, pool.stream().mapToDouble(ProviderProfile::weight).toArray()));
+    }
+
+    private static void requireCount(String pattern, int created, int wanted) {
+        if (created < wanted) {
+            throw new IllegalStateException("only " + created + " of " + wanted + " " + pattern + " claims placed");
+        }
     }
 
     // ---------------------------------------------------------------- claim ids (D14, G12)

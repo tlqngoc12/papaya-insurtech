@@ -28,7 +28,10 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Properties of the dataset generated with the tuning seed (42) as of Task 12: ordinary legit claims only. */
+/**
+ * Properties of the ordinary legit claims ({@code none}) of the dataset generated with the tuning seed (42); the
+ * fraud patterns are checked in {@link GeneratorFraudPatternsTest}.
+ */
 class DatasetGeneratorTest {
 
     private static final long SEED = 42;
@@ -37,6 +40,7 @@ class DatasetGeneratorTest {
     private static GeneratedDataset dataset;
     private static Map<String, Claim> byId;
     private static Map<String, ProviderProfile> providers;
+    private static List<Claim> ordinary;
 
     @BeforeAll
     static void generate() {
@@ -45,6 +49,9 @@ class DatasetGeneratorTest {
         dataset = new DatasetGenerator(config, catalog).generate(SEED);
         byId = dataset.claims().stream().collect(Collectors.toMap(Claim::claimId, Function.identity()));
         providers = dataset.providers().stream().collect(Collectors.toMap(ProviderProfile::id, Function.identity()));
+        Set<String> ordinaryIds = dataset.groundTruth().stream().filter(g -> g.fraudPattern().equals("none"))
+                .map(GroundTruthRow::claimId).collect(Collectors.toSet());
+        ordinary = dataset.claims().stream().filter(c -> ordinaryIds.contains(c.claimId())).toList();
     }
 
     private static <K> Map<K, Long> count(Function<Claim, K> key) {
@@ -53,8 +60,9 @@ class DatasetGeneratorTest {
 
     @Test
     void producesTheBaseClaimCountAndUsesEveryMemberAndProvider() {
-        assertEquals(config.baseClaims(), dataset.claims().size(), "1,719 ordinary legit claims before Tasks 13-15");
+        assertEquals(config.baseClaims(), ordinary.size(), "1,719 ordinary legit claims");
         assertEquals(1_719, config.baseClaims());
+        assertEquals(1_719 + 115, dataset.claims().size(), "plus 30 + 30 + 30 + 25 fraud claims of Task 13");
         assertEquals(500, dataset.claims().stream().map(Claim::memberId).distinct().count());
         assertEquals(50, dataset.claims().stream().map(Claim::providerId).distinct().count());
         assertEquals(50, dataset.providers().size());
@@ -92,9 +100,9 @@ class DatasetGeneratorTest {
                 .filter(p -> p.tier() == Tier.WEEKDAY_ONLY_HOSPITAL).toList();
         assertEquals(8, weekdayOnly.size());
         for (ProviderProfile p : weekdayOnly) {
-            List<Claim> claims = dataset.claims().stream().filter(c -> c.providerId().equals(p.id())).toList();
-            assertEquals(65, claims.size(), p.id());
-            assertTrue(claims.stream().noneMatch(Claim::isWeekend), p.id() + " has a weekend claim");
+            assertEquals(65, ordinary.stream().filter(c -> c.providerId().equals(p.id())).count(), p.id());
+            assertTrue(dataset.claims().stream().filter(c -> c.providerId().equals(p.id())).noneMatch(Claim::isWeekend),
+                    p.id() + " has a weekend claim (no weekend-anomaly fraud yet)");
         }
     }
 
@@ -120,7 +128,7 @@ class DatasetGeneratorTest {
 
     @Test
     void legitClaimsNeverBillAFullBundleAndGenericCodesStandAlone() {
-        for (Claim c : dataset.claims()) {
+        for (Claim c : ordinary) {
             Set<String> codes = new HashSet<>(c.procedureCodes());
             for (Bundle b : catalog.bundles()) {
                 assertFalse(codes.containsAll(b.components()), c.claimId() + " unbundles " + b.bundleCode());
@@ -133,13 +141,13 @@ class DatasetGeneratorTest {
 
     @Test
     void consultationOnlyInpatientClaimsAreRareAndAmountsStayInsideTheNoiseBand() {
-        long inpatient = dataset.claims().stream().filter(c -> c.claimType() == ClaimType.INPATIENT).count();
-        long consultationOnly = dataset.claims().stream()
+        long inpatient = ordinary.stream().filter(c -> c.claimType() == ClaimType.INPATIENT).count();
+        long consultationOnly = ordinary.stream()
                 .filter(c -> c.claimType() == ClaimType.INPATIENT && c.procedureCodes().equals(List.of("P-0001")))
                 .count();
         assertTrue(consultationOnly <= 0.03 * inpatient, consultationOnly + " of " + inpatient);
 
-        for (Claim c : dataset.claims()) {
+        for (Claim c : ordinary) {
             long base = c.procedureCodes().stream()
                     .mapToLong(code -> catalog.procedure(code).orElseThrow().basePrice()).sum();
             double m = (double) c.submittedAmount() / base;
@@ -149,23 +157,24 @@ class DatasetGeneratorTest {
 
     @Test
     void claimTypeMixIsCloseToTheConfiguredShares() {
-        Map<ClaimType, Long> types = count(Claim::claimType);
-        double n = dataset.claims().size();
+        Map<ClaimType, Long> types = ordinary.stream()
+                .collect(Collectors.groupingBy(Claim::claimType, TreeMap::new, Collectors.counting()));
+        double n = ordinary.size();
         assertEquals(0.55, types.get(ClaimType.OUTPATIENT) / n, 0.04);
         assertEquals(0.25, types.get(ClaimType.INPATIENT) / n, 0.04);
         assertEquals(0.20, types.get(ClaimType.DENTAL) / n, 0.04);
     }
 
     @Test
-    void groundTruthLabelsEveryClaimAsOrdinaryLegitForNow() {
+    void groundTruthOfOrdinaryClaimsHasTheirScenarios() {
         assertEquals(dataset.claims().stream().map(Claim::claimId).toList(),
                 dataset.groundTruth().stream().map(GroundTruthRow::claimId).toList());
-        Map<String, Long> scenarios = dataset.groundTruth().stream()
+        List<GroundTruthRow> rows = dataset.groundTruth().stream().filter(g -> g.fraudPattern().equals("none")).toList();
+        Map<String, Long> scenarios = rows.stream()
                 .collect(Collectors.groupingBy(GroundTruthRow::scenario, TreeMap::new, Collectors.counting()));
         assertEquals(Map.of("band_host", 122L, "natural_followup", 12L, "base", 1_585L), scenarios);
-        for (GroundTruthRow row : dataset.groundTruth()) {
+        for (GroundTruthRow row : rows) {
             assertFalse(row.isFraud());
-            assertEquals("none", row.fraudPattern());
             if (row.scenario().equals("natural_followup")) {
                 Claim followup = byId.get(row.claimId());
                 Claim source = byId.get(row.relatedClaimId());
