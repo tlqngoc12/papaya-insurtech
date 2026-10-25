@@ -23,8 +23,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 15 | Near-miss và noise | done | `f6d7481` |
 | 16 | Metric, subcommand `evaluate` và `tune` | done | `bae0be7` |
 | 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | done | `c93d367`, tag `frozen-before-heldout` |
-| 18 | Held-out (seed 2024) và seed ổn định 101–105 | done | 18a `68e6309`, 18b `e2efa0d`, 18c `cfdf676`, 18d commit "Task 18" (mã điền ở lần cập nhật sau) |
-| 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
+| 18 | Held-out (seed 2024) và seed ổn định 101–105 | done | 18a `68e6309`, 18b `e2efa0d`, 18c `cfdf676`, 18d `530897c` |
+| 19 | Writeup: README, interpretations, timeline, limitations, ai-log | done | 19a `90ec627`; (a) README và design decisions, (b) log AI (mã điền ở lần cập nhật sau) |
 
 Commit ngoài kế hoạch:
 - `d335972` Add .gitattributes to normalize line endings to LF.
@@ -36,7 +36,16 @@ Commit ngoài kế hoạch:
 
 Task 18: sau khi dừng ở bước 3, người dùng chọn phương án (a). Đã commit 18b (`e2efa0d`, bỏ đường dẫn đầu vào khỏi `metrics.json` và báo cáo, chỉ trình bày) và 18c (`cfdf676`, sinh lại báo cáo tuning theo định dạng mới, không đổi số). Sau đó `evaluate` và `all --seed 2024` cho cả bốn file (`claims.csv`, `ground_truth.csv`, `scored_claims.json`, `metrics.json`) giống hệt từng byte. Đã kiểm chứng bằng SHA-256 rằng không điểm hay metric nào đổi (chi tiết ở `limitations.md`, L16). Tag `frozen-before-heldout` vẫn ở `c93d367`.
 
-Task 18 đã commit đủ (18a–18d), 192 test xanh kể cả `HeldOutIntegrationTest`. Chưa push. Bước tiếp theo: Task 19 (writeup). Kết quả:
+Task 19: đã viết bản nháp `README.md` (tiếng Anh, theo ngôn ngữ của đề), chưa commit, chờ review. Không chạy lại dataset, không sửa code. Mọi số lấy từ `reports/*/metrics.json`, `reports/stability/summary.md`, `config/threshold-sweep.json` và `git log`. Các chỗ cần người dùng tự viết đánh dấu `[CẦN MÌNH VIẾT]`. Phát hiện nhỏ khi viết mục "How to run": `score` không tự tạo thư mục cha của `--out` (các lệnh `generate`, `tune`, `evaluate`, `all` thì có). Người dùng cho sửa:
+- Task 19a (`90ec627`, chỉ code và test): `ScoredOutputWriter` tạo thư mục cha; thêm test ghi vào thư mục chưa tồn tại cho cùng byte. 193 test xanh.
+- Kiểm chứng: `score` trên `data/heldout/claims.csv` với `config/frozen-config.json` vào thư mục tạm chưa tồn tại cho `scored_claims.json` SHA-256 `6bf48c7e…d9af`, bằng file đã commit.
+- README: bỏ cách né "generate vào out/ trước", thêm câu ở mục 5 (thay đổi chỉ tạo thư mục, không đổi output); câu về `git diff frozen-before-heldout` giờ liệt kê 4 file.
+- Người dùng tự điền các chỗ `[CẦN MÌNH VIẾT]` trong README và chốt các mục `[ĐỀ XUẤT, CẦN XÁC NHẬN]` trong `design-decisions.md`.
+- Commit (a) "Task 19: README and final design decisions": `README.md`, `design-decisions.md`, `PROGRESS.md`.
+- Commit (b) "Add AI session logs (Claude Code exports, unedited)": 19 file `.txt` từ `/export` (chép nguyên vẹn, SHA-256 trùng nguồn, toàn LF), `docs/ai-log/README.md`, xoá `.gitkeep`.
+- File `.jsonl` gốc của phiên chưa đưa vào repo; người dùng quyết sau. Log cuộc trò chuyện cố vấn sẽ bổ sung riêng.
+
+Task 18 đã commit đủ (18a–18d), 192 test xanh kể cả `HeldOutIntegrationTest`. Chưa push. Kết quả:
 - `HeldOutIntegrationTest` chạy riêng: **đạt** (recall 0,9650, FPR 0,0444, T = 7 đọc từ file).
 - Held-out seed 2024, T = 7: TP 193, FP 80, FN 7, TN 1.720; recall 96,5%, FPR chuẩn 4,4% (PASS), FDR 29,3% (FAIL theo cách hiểu thứ hai), precision 70,7%. Recall thấp nhất: upcoding 76,7%.
 - Seed 101–105 (`reports/stability/summary.md`, tính bằng `scripts/StabilitySummary.java`): recall trung bình 97,6% (SD 0,74 pp), FPR 4,2% (SD 0,37 pp), FDR 28,0% (SD 1,70 pp), precision 72,0% (SD 1,70 pp); recall thấp nhất của một pattern 76,7–90,0% (luôn là upcoding).
@@ -209,9 +218,7 @@ Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Inte
 - Git hệ thống đặt `core.autocrlf=true`; `.gitattributes` của repo ép LF.
 - PowerShell 5.1 `Out-File -Encoding utf8` ghi BOM. Commit message nên truyền bằng `git commit -m ... -m ...`, không qua file tạo bằng PowerShell.
 - Nhánh `main` đang trỏ upstream `origin/main`, nhưng remote chưa có nhánh này ("upstream is gone"). Hết khi push lần đầu bằng `git push -u origin main`. Chưa push lần nào.
-- Hai file export ngày 25/10 đang ở ngoài repo, cần nhắc người dùng chuyển vào `docs/ai-log/`:
-  - `C:\Users\Zen\2026-10-25-142613-cd-dworkingrepositoriespapaya-insurtech.txt`
-  - `C:\Users\Zen\2026-10-25-154311-cd-dworkingrepositoriespapaya-insurtech.txt`
+- 19 file export đến 20:15 ngày 25/10 đã chép nguyên vẹn vào `docs/ai-log/` (SHA-256 trùng nguồn). Export sau thời điểm đó chưa có trong repo.
 
 **Danh mục Task 02** (đã có file trong `src/main/resources/catalog/`, đây là tóm tắt lý do thiết kế):
 - 21 chẩn đoán ICD-10 bản WHO, gồm 5 DENTAL, 7 OUTPATIENT, 7 INPATIENT, và 2 mã dùng cho cả hai loại (J18.9, M17.1).

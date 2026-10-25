@@ -7,7 +7,8 @@
 ## Cách dùng
 
 - Mỗi mục có mã (`D`, `R`, `S`, `M`, `O`, `T`) để tiện nhắc lại khi review và khi viết code/test.
-- **Đề xuất của Claude** chỉ là gợi ý. Phần **Quyết định** và cột **Trọng số** do bạn điền.
+- **Đề xuất của Claude** chỉ là gợi ý. Phần **Quyết định** và cột **Trọng số** là quyết định của tác giả.
+- **Trạng thái:** đã chốt ngày 2026-10-25. Khi phụ lục (Q1–Q24, G1–G14) khác với phần thân thì phụ lục được ưu tiên. Nguồn gốc của tài liệu: xem README, mục 10.
 - Các mục gắn ⚠️ là chỗ đề **tự mâu thuẫn** hoặc ảnh hưởng lớn đến metric. Nên chốt các mục này trước.
 
 ## Tóm tắt các điểm nóng
@@ -33,7 +34,7 @@
   - B. Seed ngẫu nhiên mỗi lần, ghi seed vào output. *Đánh đổi:* trung thực hơn, nhưng file nộp và README khó khớp nhau.
   - C. Seed chính cố định để nộp, thêm một nhóm seed phụ để kiểm tra độ ổn định của metric. *Đánh đổi:* tốn thêm chút công báo cáo.
 - **Đề xuất của Claude:** C. Tái lập được và chứng minh metric không phụ thuộc may rủi của một seed (liên quan M3).
-- **Quyết định:** C. Seed chính cố định để tinh chỉnh (tuning), một seed khác làm held-out, thêm vài seed phụ để kiểm tra độ ổn định nếu còn thời gian. Lý do: tái lập được kết quả và chứng minh metric không phụ thuộc may rủi của một seed. Số seed phụ: chưa quyết.
+- **Quyết định:** C. Seed chính cố định để tinh chỉnh (tuning), một seed khác làm held-out, thêm vài seed phụ để kiểm tra độ ổn định nếu còn thời gian. Lý do: tái lập được kết quả và chứng minh metric không phụ thuộc may rủi của một seed. Số seed phụ: 5 (Q6).
 
 ### D2. Định dạng file dataset
 
@@ -286,7 +287,7 @@
   - A. `47_500 ≤ amount < 50_000`, áp cho mọi loại claim, ngưỡng và tỉ lệ 5% cấu hình được. *Đánh đổi:* bao trọn cả khi có phần lẻ.
   - B. `47_500 ≤ amount ≤ 49_999`. *Đánh đổi:* đúng chữ của đề, hở khoảng 49.999–50.000 nếu có phần lẻ.
 - **Đề xuất của Claude:** A. Tương đương B khi số tiền là số nguyên (D4-A), lại bền với phần lẻ.
-- **Quyết định:** A. Khoảng 1-2% claim hợp lệ (khoảng 20-40 claim) được cố tình đặt trong 47.500-49.999 để tạo nhiễu thực tế, vì nếu không có nhiễu thì luật bắt đúng 100% một cách giả tạo.
+- **Quyết định:** A. Khoảng 1-2% claim hợp lệ (khoảng 20-40 claim) được cố tình đặt trong 47.500-49.999 để tạo nhiễu thực tế, vì nếu không có nhiễu thì luật bắt đúng 100% một cách giả tạo. Với số nguyên, khoảng này tương đương 47.500 ≤ amount ≤ 49.999 (R10).
 
 ### R10. Quy ước biên (strict hay inclusive) cho mọi rule
 
@@ -372,7 +373,7 @@
   - B. Hằng số trong code. *Đánh đổi:* nhanh, nhưng không đáp ứng "configurable".
   - C. `.properties`. *Đánh đổi:* đơn giản, nhưng khó biểu diễn map lồng nhau.
 - **Đề xuất của Claude:** A. Một nguồn duy nhất, dễ review.
-- **Quyết định:** A. File `fraud-config.json` trong resources, có thể ghi đè bằng đường dẫn qua CLI; chứa trọng số, tham số rule (7 ngày, 2σ, 30 claim, 5%, 50.000, 5%), ngưỡng T. Lý do: một nguồn duy nhất, dễ review, dùng luôn Jackson. Danh mục mã không nằm trong file này mà ở bốn file riêng (D5). Config sau khi tuning được đóng băng vào `config/frozen-config.json` (Task 17).
+- **Quyết định:** A. File `fraud-config.json` trong resources, có thể ghi đè bằng đường dẫn qua CLI; chứa trọng số, tham số rule (7 ngày, 2σ, 30 claim, 5%, 50.000, 5%); ngưỡng T không nằm trong file này mà chỉ có trong `config/frozen-config.json` do lệnh `tune` ghi (Task 17). Lý do: một nguồn duy nhất, dễ review, dùng luôn Jackson. Danh mục mã không nằm trong file này mà ở bốn file riêng (D5). Config sau khi tuning được đóng băng vào `config/frozen-config.json` (Task 17).
 
 ### S5. Xếp hạng và phá hoà
 
@@ -570,7 +571,7 @@
 
 ## G. Bảng trọng số 8 rule (thang 1–5)
 
-| # | Rule | Trọng số đề xuất | Lý do ngắn | Trọng số |
+| # | Rule | Trọng số đề xuất | Lý do ngắn (cho trọng số đề xuất) | Trọng số |
 |---|------|:---:|------------|:---:|
 | 1 | `duplicate_claim` | 5 | Khớp chính xác 4 khoá, gần như chắc chắn là gian lận hoặc lỗi trả trùng. Thiệt hại bằng 100% số tiền claim | 5 |
 | 2 | `rapid_resubmission` | 3 | Tín hiệu khá rõ, nhưng tái khám hợp lệ trong 7 ngày (bệnh mạn tính, theo dõi sau điều trị) khá phổ biến | 2 |
@@ -642,7 +643,7 @@
 - Precision ≥ 75%, tính cả khi có hard negatives.
 - Độ lệch chuẩn của recall và precision giữa các seed ≤ 5 điểm phần trăm.
 
-- **Quyết định (mục tiêu nội bộ):** Nhận: recall ≥ 85% tổng và ≥ 70% cho từng pattern; FPR chuẩn ≤ 5%; độ lệch chuẩn của recall và precision giữa các seed ≤ 5 điểm phần trăm. Riêng mục 'precision ≥ 75%' cần xác nhận lại: với D8 (khoảng 40 báo oan upcoding) và R9 (20-40 claim hợp lệ trong dải clustering) mục tiêu này có thể khó đạt; xem M1.
+- **Quyết định (mục tiêu nội bộ):** Nhận: recall ≥ 85% tổng và ≥ 70% cho từng pattern; FPR chuẩn ≤ 5%; độ lệch chuẩn của recall và precision giữa các seed ≤ 5 điểm phần trăm. Precision ≥ 75% chỉ báo cáo, không coi là mục tiêu (Q17).
 
 ---
 
@@ -668,7 +669,12 @@
 - **Q4** — Quan hệ: *bổ sung* D12 (cách kiểm tra chồng lấn).
   - Generator tránh chồng lấn ngay từ cách sinh: không gọi rule của engine, không sinh lại, không lọc.
   - Một test chạy engine trên dữ liệu đã sinh và chỉ báo cáo số claim gian lận khớp từ 2 rule trở lên.
-- **Q5** — Quan hệ: *bổ sung* S3, mục G, H3. Nội dung: *(chờ bạn gửi riêng)*. Ghi chú "Lưu ý" ở mục G đã viết lại theo S1-A; giới hạn tương ứng ghi ở `docs/limitations.md` (L2).
+- **Q5** — Quan hệ: *bổ sung* S3, mục G, H3. Chốt ngày **2026-10-25**.
+  - Giữ tiêu chí chọn T của S3: recall cao nhất với FPR chuẩn ≤ 20% (đúng chữ của đề). FDR chỉ để báo cáo.
+  - Quét T = 1..100. Trong các T đạt FPR ≤ 20%, chọn T có TP cao nhất; nếu hoà thì FP thấp nhất; nếu vẫn hoà thì T lớn nhất.
+  - Trọng số giữ nguyên như mục G; chỉ T được chọn từ dữ liệu.
+  - Hệ quả: với S1-A, điểm khác 0 thấp nhất là 7, nên nếu T ≤ 7 thì trọng số chỉ ảnh hưởng thứ hạng (L2). Lý do giữ tiêu chí này sau khi có số liệu tuning: xem quyết định Task 17 ở S3.
+  - Ghi chú "Lưu ý" ở mục G đã viết lại theo S1-A; giới hạn tương ứng ghi ở `docs/limitations.md` (L2).
 - **Q6** — Quan hệ: *bổ sung* D1, M3 (điền số seed). Seed tuning = 42, held-out = 2024, cộng 5 seed ổn định 101–105 chạy với config đã đóng băng.
 - **Q7** — Quan hệ: *bổ sung* D3 (giá trị nhãn); *ghi đè* ngân sách D13 (30–50 thành khoảng 25, cộng kịch bản riêng).
   - `fraud_pattern` ∈ {8 tên rule theo O5, `none`, `legit_near_miss`, `legit_noise`}.
