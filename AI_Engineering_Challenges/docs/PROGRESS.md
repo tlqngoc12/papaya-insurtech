@@ -7,8 +7,8 @@ Cập nhật lần cuối: 2026-10-25.
 | # | Task | Trạng thái | Commit |
 |---|------|------------|--------|
 | 01 | Skeleton Maven, CLI stub, limitations, ai-log | done | `eb2fc4b` |
-| 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | commit "Task 02" (mã điền ở lần cập nhật sau) |
-| 03 | Config (`fraud-config.json`, `ConfigLoader`) | todo | |
+| 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | `d8b8e1e` |
+| 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | commit "Task 03" (mã điền ở lần cập nhật sau) |
 | 04 | Đọc/ghi CSV và validate đầu vào (R11) | todo | |
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | todo | |
 | 06 | Rule duplicate và rapid re-submission | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Không có. Task 02 đã commit (17 test xanh: Main 4, CatalogLoader 7, Catalog 6). Chờ người dùng bảo bắt đầu Task 03.
+Không có. Task 03 đã commit: 29 test xanh (Main 4, CatalogLoader 7, Catalog 6, ConfigLoader 12). Chờ người dùng bảo bắt đầu Task 04.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 02 vào bảng trạng thái.
-2. Task 03: `fraud-config.json` (trọng số mục G, tham số rule) và `ConfigLoader`.
-3. Task 04: `ClaimCsvReader` / `ClaimCsvWriter` và validate R11.
+1. Điền mã commit Task 03 vào bảng trạng thái.
+2. Task 04: `ClaimCsvReader` / `ClaimCsvWriter` và validate R11.
+3. Task 05: `DatasetIndex`, `Rule`, `Flag`, fixture builder.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -74,6 +74,11 @@ Không có. Task 02 đã commit (17 test xanh: Main 4, CatalogLoader 7, Catalog 
   - Không sửa `CatalogLoaderTest` để đọc JSON thô, vì `Catalog.create` đã chặn lỗi với thông báo chính xác và `CatalogTest` đã kiểm tra từng loại lỗi.
   - Không thêm snapshot test. Ghi lỗ hổng "tráo cặp" vào `limitations.md` (L7).
   - Commit Task 02 gồm danh mục, test, `limitations.md` và `PROGRESS.md`.
+- 2026-10-25: Task 03, config.
+  - `fraud-config.json` không chứa T. T chỉ có trong `config/frozen-config.json`, do `tune` ghi ra (cùng schema, thêm `threshold`).
+  - `score` không cần T. Lỗi thiếu T (`requireThreshold()`) chỉ xảy ra ở `evaluate` và `all`. Không có T mặc định.
+  - Thêm `rules.amount_clustering.auto_approval_threshold = 50000`, kiểm tra `upper_bound < auto_approval_threshold`. Evidence clustering lấy con số 50.000 từ trường này. Cả ba biên clustering đọc thành `long`, có test với giá trị vượt `Integer.MAX_VALUE`.
+  - Ràng buộc tham số: `min_group_size ≥ 2`, `window_days ≥ 1`, `max_weekend_ratio` trong (0; 1), `threshold` 1–100.
 
 ## Ràng buộc cho các task sau
 
@@ -95,14 +100,16 @@ Không có. Task 02 đã commit (17 test xanh: Main 4, CatalogLoader 7, Catalog 
 - Git hệ thống đặt `core.autocrlf=true`; `.gitattributes` của repo ép LF.
 - PowerShell 5.1 `Out-File -Encoding utf8` ghi BOM. Commit message nên truyền bằng `git commit -m ... -m ...`, không qua file tạo bằng PowerShell.
 - Nhánh `main` đang trỏ upstream `origin/main`, nhưng remote chưa có nhánh này ("upstream is gone"). Hết khi push lần đầu bằng `git push -u origin main`. Chưa push lần nào.
-- File export ngày 25/10 đang ở `C:\Users\Zen\2026-10-25-142613-cd-dworkingrepositoriespapaya-insurtech.txt`, ngoài repo. Nhắc người dùng chuyển vào `docs/ai-log/`.
+- Hai file export ngày 25/10 đang ở ngoài repo, cần nhắc người dùng chuyển vào `docs/ai-log/`:
+  - `C:\Users\Zen\2026-10-25-142613-cd-dworkingrepositoriespapaya-insurtech.txt`
+  - `C:\Users\Zen\2026-10-25-154311-cd-dworkingrepositoriespapaya-insurtech.txt`
 
-**Bản nháp danh mục Task 02** (chỉ nằm trong hội thoại, chưa có file):
+**Danh mục Task 02** (đã có file trong `src/main/resources/catalog/`, đây là tóm tắt lý do thiết kế):
 - 21 chẩn đoán ICD-10 bản WHO, gồm 5 DENTAL, 7 OUTPATIENT, 7 INPATIENT, và 2 mã dùng cho cả hai loại (J18.9, M17.1).
-- 40 procedure, trong đó 8 có cờ surgical (P-2006, P-2007, P-2009, P-2012, P-2013, P-2101, P-2102, P-3007). Bản đầu ghi nhầm là 9.
-- Whitelist: 64 cặp riêng (đếm tay), cộng 35 cặp mã chung.
+- 40 procedure, trong đó 8 có cờ surgical (P-2006, P-2007, P-2009, P-2012, P-2013, P-2101, P-2102, P-3007).
   - Mã chung: P-0001 (300), P-0002 (200).
   - Đánh số theo nhóm: P-1xxx ngoại trú, P-2xxx nội trú, P-3xxx nha khoa.
+- Whitelist: 64 cặp riêng, cộng 35 cặp mã chung.
 - 6 bundle: P-1101 diabetes, P-1102 cardiovascular, P-1103 UTI, P-2101 appendectomy, P-2102 cholecystectomy, P-3101 root canal.
 - Procedure dùng cho clustering: P-2009 caesarean (42.000) và P-2010 coronary angiography (40.000).
   - Không chọn 38.000 vì cần μ ≥ 38.461 để số tiền 49.999 vẫn có z ≤ 2 (CV 15%).
