@@ -705,3 +705,12 @@
 - **Q22** — Quan hệ: *bổ sung* S1. Chấp nhận lệch ví dụ của đề: với S1-A, hai flag (4 + 2) cho round(600 / 28) = 21 điểm thay vì 78. Writeup giải thích lý do chọn S1-A.
 - **Q23** — Quan hệ: *bổ sung* R2, R3, R7, R8. Các diễn giải thêm so với chữ của đề được đưa thành mục "Interpretations" trong writeup.
 - **Q24** — Quan hệ: *bổ sung* M3. Held-out chỉ chống overfit theo seed, không chống overfit theo generator; đã ghi ở `docs/limitations.md` (L1).
+
+### Quyết định của generator spec (G1–G14)
+
+> Chốt ngày **2026-10-25**. Chi tiết đầy đủ ở `docs/generator-spec.md`, mục 9.
+
+- **D3 (ghi đè, theo G5):** `ground_truth.csv` có **5 cột**: `claim_id, is_fraud, fraud_pattern, related_claim_id, scenario`. Cột `scenario` ghi mã kịch bản chi tiết (ví dụ `phantom_day`, `day_30_claims`, `near_miss_rapid_8_days`), để báo cáo near-miss và noise theo từng loại (M2). `claims.csv` vẫn đúng 10 cột; engine vẫn không đọc file ground truth.
+- **G1** — Quan hệ: *bổ sung* D1. Mỗi giai đoạn sinh có một `SplittableRandom` riêng, seed = `mix64(seed XOR fnv1a64(tên giai đoạn))` (hàm trộn SplitMix64). Không dùng công thức tuyến tính `seed × 31 + mã`.
+- **G2** — Quan hệ: *bổ sung* D12, Q4. Khi một lựa chọn trong lúc sinh vi phạm ràng buộc **của generator**, generator rút lại lựa chọn đó, tối đa 1.000 lần (quá thì ném lỗi). Việc rút lại không bao giờ dựa trên kết quả rule của engine; điểm này khác với "lọc lại sau khi sinh" mà Q4 cấm. Ghi rõ vào writeup.
+- **G3–G14** — đồng ý theo đề xuất trong `generator-spec.md`. Bổ sung: upcoding chia 20 claim U(1,5; 2,5) và 10 claim U(1,2; 1,6); 6 near-miss quanh dải clustering nằm trong quota 32 claim tự nhiên của 4 nhóm.

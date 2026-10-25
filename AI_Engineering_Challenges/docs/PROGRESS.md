@@ -16,8 +16,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 08 | Rule unbundling và diagnosis-procedure mismatch | done | `ec09b94` |
 | 09 | Rule phantom billing và amount clustering | done | `d3d62a7` |
 | 10 | Rule weekend anomaly | done | `72d5303` |
-| 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | done | commit "Task 11" (mã điền ở lần cập nhật sau) |
-| 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | todo | |
+| 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | done | `e79b499` |
+| 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | doing (đặc tả chờ duyệt) | |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | todo | |
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | todo | |
 | 15 | Near-miss và noise | todo | |
@@ -33,14 +33,14 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 11 đã commit: 118 test xanh. Task 12: đang viết `docs/generator-spec.md` để người dùng duyệt **trước khi code**.
+Task 12: `docs/generator-spec.md` đã duyệt (G1–G14) và commit cùng `limitations.md` (L10–L12). Đang code Task 12: nền, provider, member, `claim_id`, ghi file, giữ chỗ 4 nhóm clustering và hai ngày kịch bản, test kiến trúc.
 
 Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để tham khảo, chưa phải số báo cáo): 2.000 claim chấm và serialize trong 149 ms; 100.000 claim chấm trong 4.267 ms.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 11 vào bảng trạng thái.
-2. Người dùng duyệt `docs/generator-spec.md` và trả lời các câu hỏi mở trong đó.
+1. Hoàn tất Task 12, chờ review.
+2. Task 13: duplicate, rapid, upcoding, unbundling theo `generator-spec.md` mục 5.
 3. Task 12: generator phần claim hợp lệ, lệnh `generate`.
 
 ## Câu hỏi còn mở / chờ quyết
@@ -103,6 +103,7 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Duyệt `docs/generator-spec.md`: G1 (RNG con bằng `SplittableRandom`, seed trộn bằng hàm băm), G2 (rút lại lựa chọn ≤ 1.000 lần, chỉ theo ràng buộc của generator), G3–G14 theo đề xuất; upcoding 20 claim mạnh + 10 claim nhẹ; 6 near-miss quanh dải clustering nằm trong quota 32. D3 có thêm cột `scenario` (ghi vào phụ lục `design-decisions.md`). Thêm L10–L12 vào `limitations.md`.
 - 2026-10-25: Task 11, chấm điểm và lệnh `score`.
   - Điểm tính bằng số nguyên: `(200·Σw + W) / (2·W)` = round half-up của 100·Σw/W (S1-A, S7).
   - Xếp hạng S5; flag trong mỗi claim theo thứ tự `RuleId`.
@@ -127,6 +128,7 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
 Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Interpretations" của writeup (cùng với R2, R3, R7, R8 theo Q23).
 
 - Phần trăm trong evidence được cắt bớt, không làm tròn, để không bao giờ hiển thị 100%.
+- (G2) Generator được rút lại một lựa chọn trong lúc sinh (tối đa 1.000 lần) khi lựa chọn đó vi phạm ràng buộc của chính generator; không bao giờ dựa trên kết quả rule của engine, và không lọc lại dataset sau khi sinh.
 
 ## Ràng buộc cho các task sau
 

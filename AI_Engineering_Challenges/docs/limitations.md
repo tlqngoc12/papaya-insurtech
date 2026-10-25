@@ -56,3 +56,21 @@ Rule upcoding chỉ xét claim có đúng một procedure. Rule unbundling chỉ
 *Nguồn: R4-A, Q2, Task 07.*
 
 Vì mean và SD tính trên cả nhóm, kể cả claim đang xét, chính số tiền bất thường kéo mean lên và làm SD phình ra. Với nhóm n claim, z của một claim không bao giờ vượt (n − 1)/√n, dù số tiền lớn đến đâu: n = 5 cho tối đa 1,79, n = 10 cho tối đa 2,85. Nhóm càng nhỏ thì upcoding càng khó bị bắt, và nhiều claim upcoded trong cùng nhóm còn che lẫn nhau.
+
+## L10. Recall của các rule dựa trên bảng tham chiếu cao do cấu trúc
+
+*Nguồn: Task 12, generator spec.*
+
+Unbundling, diagnosis-procedure mismatch và duplicate so khớp trên bảng tham chiếu hoặc khóa cố định (bundle, whitelist, bốn trường của duplicate). Generator và engine dùng **chung** các bảng đó, nên mọi claim gian lận thuộc ba pattern này được tạo đúng theo định nghĩa mà engine kiểm tra. Recall gần 100% của ba rule này vì vậy là hệ quả cấu trúc, không phải bằng chứng rule tốt. Báo cáo metric sẽ **tách riêng** nhóm rule dựa trên bảng tham chiếu (duplicate, unbundling, mismatch) với nhóm rule thống kê hoặc ngưỡng (rapid, upcoding, phantom, weekend, clustering).
+
+## L11. Bệnh viện "chỉ làm ngày thường" nhận cả ca cấp cứu vào ngày thường
+
+*Nguồn: D11, Q13, Task 12.*
+
+Tám bệnh viện "chỉ làm ngày thường" không có claim hợp lệ nào vào cuối tuần, kể cả các chẩn đoán cấp cứu như nhồi máu cơ tim (I21.9), đột quỵ (I63.9) hay sinh nở (O80, O82). Điều này không thực tế: cấp cứu không chọn ngày. Đây là giả định của đề ("providers who never operate on weekends"), được giữ để rule weekend anomaly có dữ liệu kiểm tra.
+
+## L12. Claim gian lận có nhiễu số tiền hẹp hơn claim hợp lệ
+
+*Nguồn: G7, generator spec mục 5.*
+
+Để claim gian lận ngoài upcoding không vô tình vượt ngưỡng upcoding (D12), generator cắt nhiễu số tiền của chúng (và của bản gốc duplicate/rapid) ở m ≤ 1,25, thay vì ±3σ (m ≤ 1,45) như claim hợp lệ. Engine không dùng đặc điểm này, nhưng một mô hình học máy huấn luyện trên dataset này có thể học được nó.
