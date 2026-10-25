@@ -74,7 +74,8 @@ class FraudEngineTest {
     @Test
     void scoresOneHundredThousandClaims() {
         List<Claim> claims = RandomClaims.generate(100_000, 2);
-        FraudEngine.Result result = assertTimeout(Duration.ofSeconds(120), () -> {
+        // Q19: under 30 seconds, time printed.
+        FraudEngine.Result result = assertTimeout(Duration.ofSeconds(30), () -> {
             long start = System.nanoTime();
             FraudEngine.Result r = engine.run(claims);
             System.out.printf("FraudEngine: scored 100,000 claims in %d ms%n", (System.nanoTime() - start) / 1_000_000);

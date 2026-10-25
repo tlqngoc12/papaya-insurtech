@@ -22,8 +22,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | done | `08cfdc6` |
 | 15 | Near-miss và noise | done | `f6d7481` |
 | 16 | Metric, subcommand `evaluate` và `tune` | done | `bae0be7` |
-| 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | done | commit "Task 17", tag `frozen-before-heldout` (mã điền ở lần cập nhật sau) |
-| 18 | Held-out (seed 2024) và seed ổn định 101–105 | todo | |
+| 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | done | `c93d367`, tag `frozen-before-heldout` |
+| 18 | Held-out (seed 2024) và seed ổn định 101–105 | doing | 18a: commit "Task 18a" (mã điền ở lần cập nhật sau) |
 | 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
 
 Commit ngoài kế hoạch:
@@ -34,7 +34,9 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 17 đã commit và gắn tag `frozen-before-heldout` (chưa push). Chưa bắt đầu Task 18.
+Task 18a: đã viết `HeldOutIntegrationTest` (test #37) **trước** khi sinh hay chạy bất cứ thứ gì về held-out; commit riêng, chưa chạy test này. Các test khác: 189 test xanh khi loại trừ test held-out. Sửa một chỗ lệch Q19 (trước khi nhìn held-out): test chấm 100.000 claim trong `FraudEngineTest` có giới hạn **120 giây**, Q19 chốt **< 30 giây**; đã đổi thành 30 giây (lần chạy này: 2.414 ms).
+
+Task 17 đã commit và gắn tag `frozen-before-heldout` (chưa push).
 
 Task 17a: Đã sinh `data/tuning/` (seed 42; sinh lại cho SHA-256 giống hệt), chạy `tune` (T = 7) và `evaluate` (`reports/tuning/`). Không sửa rule, trọng số, tham số hay generator. Chưa sinh held-out (seed 2024) và seed 101–105.
 
