@@ -135,6 +135,16 @@
     "amount_cap": 47000
   },
   "planted_amount_range": { "min": 47500, "max": 49999 },
+  "weekend_surgery": {
+    "hospitals_with_three_claims": 4,
+    "templates": [
+      { "diagnosis": "K35.8", "procedures": ["P-2101"], "weight": 1 },
+      { "diagnosis": "K80.2", "procedures": ["P-2102"], "weight": 1 },
+      { "diagnosis": "S72.0", "procedures": ["P-2012"], "weight": 1 },
+      { "diagnosis": "M17.1", "procedures": ["P-2013"], "weight": 1 }
+    ]
+  },
+  "mismatch": { "excluded_replacements": ["P-2009", "P-2010"] },
   "phantom_day": { "fraud_claims": 25, "legit_claims": 6 },
   "noise": {
     "band_legit_claims": 20,

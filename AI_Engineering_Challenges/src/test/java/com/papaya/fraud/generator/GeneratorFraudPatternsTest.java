@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Task 13 patterns in the seed-42 dataset: duplicate, rapid re-submission, upcoding, unbundling. */
+/** Task 13 patterns in the seed-42 dataset: duplicate, rapid re-submission, upcoding, unbundling (all counts too). */
 class GeneratorFraudPatternsTest {
 
     private static final int WINDOW = 7;
@@ -69,8 +69,9 @@ class GeneratorFraudPatternsTest {
     void eachPatternHasItsExactCountAndIsLabelledFraud() {
         Map<String, Long> fraud = dataset.groundTruth().stream().filter(GroundTruthRow::isFraud)
                 .collect(Collectors.groupingBy(GroundTruthRow::fraudPattern, TreeMap::new, Collectors.counting()));
-        assertEquals(Map.of("duplicate_claim", 30L, "rapid_resubmission", 30L, "upcoding", 30L, "unbundling", 25L),
-                fraud);
+        assertEquals(Map.of("duplicate_claim", 30L, "rapid_resubmission", 30L, "upcoding", 30L, "unbundling", 25L,
+                "phantom_billing", 25L, "weekend_anomaly", 20L, "diagnosis_procedure_mismatch", 20L,
+                "amount_clustering", 20L), fraud);
         assertTrue(dataset.groundTruth().stream().filter(g -> !g.isFraud()).allMatch(g -> g.fraudPattern().equals("none")));
     }
 

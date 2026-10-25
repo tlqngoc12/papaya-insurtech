@@ -3,6 +3,7 @@ package com.papaya.fraud.generator;
 import com.papaya.fraud.catalog.Bundle;
 import com.papaya.fraud.catalog.Catalog;
 import com.papaya.fraud.catalog.Diagnosis;
+import com.papaya.fraud.catalog.Procedure;
 import com.papaya.fraud.generator.GeneratedDataset.ScenarioDay;
 import com.papaya.fraud.generator.GeneratorConfig.BandHost;
 import com.papaya.fraud.generator.GeneratorConfig.CaseMixEntry;
@@ -30,7 +31,8 @@ import java.util.TreeSet;
  *
  * <p>Implemented so far: providers, members, the reserved scenario days, the ordinary legit claims (including the
  * natural claims of the four band hosts and the chronic follow-ups) (Task 12); duplicate, rapid re-submission,
- * upcoding and unbundling fraud (Task 13); claim ids and ground truth.
+ * upcoding and unbundling fraud (Task 13); phantom billing, weekend anomaly, diagnosis-procedure mismatch and
+ * amount clustering fraud (Task 14); claim ids and ground truth.
  */
 public final class DatasetGenerator {
 
@@ -44,6 +46,15 @@ public final class DatasetGenerator {
     static final String STAGE_RESUBMISSION = "fraud_resubmission";
     static final String STAGE_UPCODE = "fraud_upcode";
     static final String STAGE_UNBUNDLE = "fraud_unbundle";
+    static final String STAGE_PHANTOM = "fraud_phantom";
+    static final String STAGE_WEEKEND = "fraud_weekend";
+    static final String STAGE_MISMATCH = "fraud_mismatch";
+    static final String STAGE_BAND = "fraud_band";
+
+    static final String PHANTOM = "phantom_billing";
+    static final String WEEKEND = "weekend_anomaly";
+    static final String MISMATCH = "diagnosis_procedure_mismatch";
+    static final String BAND = "amount_clustering";
 
     static final String DUPLICATE = "duplicate_claim";
     static final String RESUBMISSION = "rapid_resubmission";
@@ -92,6 +103,10 @@ public final class DatasetGenerator {
         resubmissions(StageRandom.forStage(seed, STAGE_RESUBMISSION), ctx);
         upcodes(StageRandom.forStage(seed, STAGE_UPCODE), ctx);
         unbundles(StageRandom.forStage(seed, STAGE_UNBUNDLE), ctx);
+        phantomDay(StageRandom.forStage(seed, STAGE_PHANTOM), ctx);
+        weekendSurgeries(StageRandom.forStage(seed, STAGE_WEEKEND), ctx);
+        mismatches(StageRandom.forStage(seed, STAGE_MISMATCH), ctx);
+        bandAmounts(StageRandom.forStage(seed, STAGE_BAND), ctx);
 
         assignClaimIds(StageRandom.forStage(seed, STAGE_CLAIM_IDS), drafts);
         return output(drafts, providers, members, reservations);
@@ -746,6 +761,178 @@ public final class DatasetGenerator {
         return pool.get(StageRandom.weightedIndex(r, pool.stream().mapToDouble(ProviderProfile::weight).toArray()));
     }
 
+    // ---------------------------------------------------------------- phantom billing (R6, D10-B, Q8)
+
+    /**
+     * The fraud part of the phantom day: phantom_day.fraud_claims ordinary-looking outpatient claims of distinct
+     * members at the reserved clinic on the reserved weekday. The 6 genuine claims of that day come in Task 15.
+     */
+    private void phantomDay(SplittableRandom r, Context ctx) {
+        ScenarioDay day = ctx.reservations.phantomDay();
+        ProviderProfile clinic = ctx.providers.stream().filter(p -> p.id().equals(day.providerId())).findFirst()
+                .orElseThrow();
+        Set<String> members = new HashSet<>();
+        int w = ctx.isolation();
+        List<CaseMixEntry> entries = config.caseMix().get(ClaimType.OUTPATIENT.name());
+        double[] entryWeights = entries.stream().mapToDouble(CaseMixEntry::weight).toArray();
+        for (int i = 0; i < config.phantomDay().fraudClaims(); i++) {
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = ClaimType.OUTPATIENT;
+            d.provider = clinic;
+            d.date = day.date();
+            boolean placed = false;
+            for (int attempt = 0; attempt < config.maxRedraws() && !placed; attempt++) {
+                CaseMixEntry entry = entries.get(StageRandom.weightedIndex(r, entryWeights));
+                MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
+                if (members.contains(member.id()) || ctx.ledger.countWithin(member.id(), entry.diagnosis(),
+                        day.date().minusDays(w), day.date().plusDays(w)) > 0) {
+                    continue;
+                }
+                d.member = member;
+                d.diagnosis = entry.diagnosis();
+                d.procedures = List.copyOf(template(r, entry).procedures());
+                placed = priceFraudClaim(r, d, Long.MAX_VALUE);
+            }
+            if (!placed) {
+                throw new IllegalStateException("cannot place phantom claim " + i);
+            }
+            d.pattern = PHANTOM;
+            d.scenario = "phantom_day";
+            members.add(d.member.id());
+            ctx.add(d);
+        }
+    }
+
+    // ---------------------------------------------------------------- weekend anomaly (R7, D11, Q12, Q13)
+
+    /**
+     * Surgical inpatient claims on Saturdays and Sundays at the weekday-only hospitals: 3 at
+     * hospitals_with_three_claims of them, 2 at the others. With 65 ordinary weekday claims each (plus any weekday
+     * fraud), every one sees at most 2 other weekend claims, i.e. below 5% leave-one-out.
+     */
+    private void weekendSurgeries(SplittableRandom r, Context ctx) {
+        List<ProviderProfile> hospitals = new ArrayList<>(byTier(ctx.providers, Tier.WEEKDAY_ONLY_HOSPITAL));
+        StageRandom.shuffle(r, hospitals);
+        List<LocalDate> weekendDays = allDays.stream().filter(ClaimCsv::isWeekend).toList();
+        List<GeneratorConfig.SurgeryTemplate> templates = config.weekendSurgery().templates();
+        double[] weights = templates.stream().mapToDouble(GeneratorConfig.SurgeryTemplate::weight).toArray();
+        int w = ctx.isolation();
+        for (int h = 0; h < hospitals.size(); h++) {
+            int claims = h < config.weekendSurgery().hospitalsWithThreeClaims() ? 3 : 2;
+            for (int i = 0; i < claims; i++) {
+                GeneratorConfig.SurgeryTemplate t = templates.get(StageRandom.weightedIndex(r, weights));
+                Draft d = new Draft(ctx.drafts.size());
+                d.type = ClaimType.INPATIENT;
+                d.provider = hospitals.get(h);
+                d.diagnosis = t.diagnosis();
+                d.procedures = List.copyOf(t.procedures());
+                if (!priceFraudClaim(r, d, Long.MAX_VALUE)) {
+                    throw new IllegalStateException("cannot price weekend surgery " + t.procedures());
+                }
+                boolean placed = false;
+                for (int attempt = 0; attempt < config.maxRedraws() && !placed; attempt++) {
+                    MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
+                    LocalDate date = StageRandom.pick(r, weekendDays);
+                    if (ctx.ledger.countWithin(member.id(), d.diagnosis, date.minusDays(w), date.plusDays(w)) == 0) {
+                        d.member = member;
+                        d.date = date;
+                        placed = true;
+                    }
+                }
+                if (!placed) {
+                    throw new IllegalStateException("cannot place a weekend surgery at " + d.provider.id());
+                }
+                d.pattern = WEEKEND;
+                d.scenario = "weekend_surgery";
+                ctx.add(d);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- diagnosis-procedure mismatch (R8, Q14, Q15)
+
+    /**
+     * Copies the case of an ordinary claim and replaces exactly one procedure with one billable on the same claim
+     * type but not valid for the diagnosis. The replacement never completes a bundle, never is the bundle code of a
+     * procedure already there, never is a band host procedure. Weekday-only hospitals only get weekday dates, so a
+     * surgical replacement can never fall on their weekend.
+     */
+    private void mismatches(SplittableRandom r, Context ctx) {
+        List<Draft> models = ctx.drafts.stream().filter(d -> d.pattern.equals("none") && d.scenario.equals("base"))
+                .toList();
+        Set<String> excluded = Set.copyOf(config.mismatch().excludedReplacements());
+        for (int i = 0; i < config.fraudCounts().mismatch(); i++) {
+            Draft d = null;
+            for (int attempt = 0; attempt < config.maxRedraws() && d == null; attempt++) {
+                Draft model = StageRandom.pick(r, models);
+                int slot = r.nextInt(model.procedures.size());
+                List<String> candidates = catalog.procedures().stream()
+                        .filter(p -> p.claimTypes().contains(model.type))
+                        .map(Procedure::code)
+                        .filter(code -> !excluded.contains(code) && !model.procedures.contains(code)
+                                && !catalog.isValidPair(model.diagnosis, code))
+                        .toList();
+                if (candidates.isEmpty()) {
+                    continue;
+                }
+                List<String> procedures = new ArrayList<>(model.procedures);
+                procedures.set(slot, StageRandom.pick(r, candidates));
+                if (formsBundle(procedures)) {
+                    continue;
+                }
+                Draft m = new Draft(ctx.drafts.size());
+                m.type = model.type;
+                m.provider = model.provider;
+                m.diagnosis = model.diagnosis;
+                m.procedures = List.copyOf(procedures);
+                if (priceFraudClaim(r, m, Long.MAX_VALUE)) {
+                    d = m;
+                }
+            }
+            if (d == null) {
+                throw new IllegalStateException("cannot build mismatch claim " + i);
+            }
+            d.pattern = MISMATCH;
+            d.scenario = "mismatch";
+            placeNewClaim(r, d, ctx);
+            ctx.add(d);
+        }
+    }
+
+    /** All components of a bundle, or a bundle code together with one of its components. */
+    private boolean formsBundle(List<String> procedures) {
+        Set<String> codes = Set.copyOf(procedures);
+        return catalog.bundles().stream().anyMatch(b -> codes.containsAll(b.components())
+                || (codes.contains(b.bundleCode()) && b.components().stream().anyMatch(codes::contains)));
+    }
+
+    // ---------------------------------------------------------------- amount clustering (R9, Q3, Q15)
+
+    /**
+     * band_amount claims spread evenly over the four band hosts, amount uniform in the planted range. P-2009 is
+     * surgical, but weekday-only hospitals only get weekday dates, so these claims never trigger weekend anomaly.
+     */
+    private void bandAmounts(SplittableRandom r, Context ctx) {
+        int perHost = config.fraudCounts().bandAmount() / config.bandHosts().size();
+        GeneratorConfig.LongRange range = config.plantedAmountRange();
+        for (BandHost host : config.bandHosts()) {
+            for (int i = 0; i < perHost; i++) {
+                Draft d = new Draft(ctx.drafts.size());
+                d.type = ClaimType.INPATIENT;
+                d.host = host;
+                d.diagnosis = host.diagnosis();
+                d.procedures = List.copyOf(host.procedures());
+                d.provider = providerFor(r, ClaimType.INPATIENT, ctx);
+                d.amount = range.min() + r.nextLong(range.max() - range.min() + 1);
+                d.multiplier = (double) d.amount / basePrice(d.procedures);
+                d.pattern = BAND;
+                d.scenario = "band_amount";
+                placeNewClaim(r, d, ctx);
+                ctx.add(d);
+            }
+        }
+    }
+
     private static void requireCount(String pattern, int created, int wanted) {
         if (created < wanted) {
             throw new IllegalStateException("only " + created + " of " + wanted + " " + pattern + " claims placed");
@@ -818,6 +1005,12 @@ public final class DatasetGenerator {
         });
         for (BandHost h : config.bandHosts()) {
             checkTemplate(problems, ClaimType.INPATIENT, h.diagnosis(), h.procedures());
+        }
+        for (GeneratorConfig.SurgeryTemplate t : config.weekendSurgery().templates()) {
+            checkTemplate(problems, ClaimType.INPATIENT, t.diagnosis(), t.procedures());
+            if (t.procedures().stream().noneMatch(code -> catalog.procedure(code).orElseThrow().surgical())) {
+                problems.add("weekend surgery template " + t.procedures() + " has no surgical procedure");
+            }
         }
         if (!problems.isEmpty()) {
             throw new IllegalArgumentException("Generator case mix inconsistent with the catalog:\n  - "

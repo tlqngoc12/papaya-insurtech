@@ -12,7 +12,19 @@ public record GeneratorConfig(Dataset dataset, Volumes volumes, Chronic chronic,
                               Map<String, List<CaseMixEntry>> caseMix, List<BandHost> bandHosts,
                               double maxPlantedShare, FraudCounts fraudCounts, Upcode upcode,
                               Resubmission resubmission, Unbundle unbundle, LongRange plantedAmountRange,
-                              PhantomDay phantomDay, Noise noise, int maxRedraws) {
+                              PhantomDay phantomDay, Noise noise, WeekendSurgery weekendSurgery,
+                              Mismatch mismatch, int maxRedraws) {
+
+    /** Weekend anomaly fraud: surgical inpatient templates; some weekday-only hospitals get 3 claims, others 2. */
+    public record WeekendSurgery(int hospitalsWithThreeClaims, List<SurgeryTemplate> templates) {
+    }
+
+    public record SurgeryTemplate(String diagnosis, List<String> procedures, double weight) {
+    }
+
+    /** Procedures never used as the invalid replacement (the band host procedures). */
+    public record Mismatch(List<String> excludedReplacements) {
+    }
 
     public record Dataset(int totalClaims, int memberCount, int year, ProviderTiers providerTiers) {
     }

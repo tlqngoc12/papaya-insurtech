@@ -57,6 +57,12 @@ Rule upcoding chỉ xét claim có đúng một procedure. Rule unbundling chỉ
 
 Vì mean và SD tính trên cả nhóm, kể cả claim đang xét, chính số tiền bất thường kéo mean lên và làm SD phình ra. Với nhóm n claim, z của một claim không bao giờ vượt (n − 1)/√n, dù số tiền lớn đến đâu: n = 5 cho tối đa 1,79, n = 10 cho tối đa 2,85. Nhóm càng nhỏ thì upcoding càng khó bị bắt, và nhiều claim upcoded trong cùng nhóm còn che lẫn nhau.
 
+**Mở rộng (đo trên seed 42, Task 13–14, chỉ là số kiểm tra):**
+- Masking tác động lên cả FP tự nhiên. Các claim upcoded làm phình SD của chính nhóm chúng, nên số claim hợp lệ bị upcoding flag giảm từ **34** (dữ liệu nền, chưa có claim upcoded) xuống **9** sau khi chèn 30 claim upcoded vào 21 nhóm. Ở các nhóm có claim upcoded, FP tự nhiên gần như về 0; ở các nhóm không có, FP giữ nguyên.
+- Vì vậy con số khoảng 2,3% FP tự nhiên ở D8 chỉ đúng với nhóm "sạch", không có claim upcoded.
+- Precision của upcoding đo được phụ thuộc vào việc nhóm nào chứa claim upcoded. Đây là đặc điểm của dữ liệu tổng hợp, không phải tính chất ổn định của rule.
+- Masking cũng làm sót claim thật: CLM-01130 (P-2102, hệ số 1,38) có z = 1,58, nhưng nếu bỏ 2 claim upcoded khác cùng nhóm thì z = 2,88 và claim sẽ bị bắt.
+
 ## L10. Recall của các rule dựa trên bảng tham chiếu cao do cấu trúc
 
 *Nguồn: Task 12, generator spec.*

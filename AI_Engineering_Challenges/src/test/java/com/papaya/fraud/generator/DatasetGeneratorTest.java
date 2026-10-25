@@ -54,6 +54,10 @@ class DatasetGeneratorTest {
         ordinary = dataset.claims().stream().filter(c -> ordinaryIds.contains(c.claimId())).toList();
     }
 
+    private static String byPattern(Claim c) {
+        return dataset.groundTruth().get(dataset.claims().indexOf(c)).fraudPattern();
+    }
+
     private static <K> Map<K, Long> count(Function<Claim, K> key) {
         return dataset.claims().stream().collect(Collectors.groupingBy(key, TreeMap::new, Collectors.counting()));
     }
@@ -62,7 +66,7 @@ class DatasetGeneratorTest {
     void producesTheBaseClaimCountAndUsesEveryMemberAndProvider() {
         assertEquals(config.baseClaims(), ordinary.size(), "1,719 ordinary legit claims");
         assertEquals(1_719, config.baseClaims());
-        assertEquals(1_719 + 115, dataset.claims().size(), "plus 30 + 30 + 30 + 25 fraud claims of Task 13");
+        assertEquals(1_719 + 200, dataset.claims().size(), "plus the 200 fraud claims of Tasks 13 and 14");
         assertEquals(500, dataset.claims().stream().map(Claim::memberId).distinct().count());
         assertEquals(50, dataset.claims().stream().map(Claim::providerId).distinct().count());
         assertEquals(50, dataset.providers().size());
@@ -79,8 +83,8 @@ class DatasetGeneratorTest {
     }
 
     @Test
-    void everyClaimIsConsistentWithTheCatalog() {
-        for (Claim c : dataset.claims()) {
+    void everyOrdinaryClaimIsConsistentWithTheCatalog() {
+        for (Claim c : ordinary) {
             ProviderProfile p = providers.get(c.providerId());
             assertTrue(p.tier().claimTypes().contains(c.claimType()), c.claimId() + " type vs provider tier");
             assertTrue(catalog.diagnosis(c.diagnosisCode()).orElseThrow().claimTypes().contains(c.claimType()),
@@ -101,14 +105,16 @@ class DatasetGeneratorTest {
         assertEquals(8, weekdayOnly.size());
         for (ProviderProfile p : weekdayOnly) {
             assertEquals(65, ordinary.stream().filter(c -> c.providerId().equals(p.id())).count(), p.id());
-            assertTrue(dataset.claims().stream().filter(c -> c.providerId().equals(p.id())).noneMatch(Claim::isWeekend),
-                    p.id() + " has a weekend claim (no weekend-anomaly fraud yet)");
+            assertTrue(dataset.claims().stream().filter(c -> c.providerId().equals(p.id()))
+                            .filter(c -> !byPattern(c).equals("weekend_anomaly")).noneMatch(Claim::isWeekend),
+                    p.id() + " has a weekend claim that is not weekend-anomaly fraud");
         }
     }
 
     @Test
     void bandHostsHoldTheirNaturalQuotaMinusTheNearMissesStillToCome() {
-        Map<String, Long> bySignature = count(c -> c.diagnosisCode() + " " + String.join("+", c.procedureCodes()));
+        Map<String, Long> bySignature = ordinary.stream().collect(Collectors.groupingBy(
+                c -> c.diagnosisCode() + " " + String.join("+", c.procedureCodes()), TreeMap::new, Collectors.counting()));
         assertEquals(30L, bySignature.get("I21.9 P-2010"));
         assertEquals(30L, bySignature.get("O82 P-2009"));
         assertEquals(31L, bySignature.get("I21.9 P-2010+P-2001"));
@@ -116,13 +122,16 @@ class DatasetGeneratorTest {
     }
 
     @Test
-    void reservedScenarioDaysAreEmptyWeekdaysAtTwoDifferentClinics() {
+    void reservedScenarioDaysHoldNoOrdinaryClaimAndAreWeekdaysAtTwoDifferentClinics() {
         for (ScenarioDay day : List.of(dataset.phantomDay(), dataset.day30())) {
             assertEquals(Tier.CLINIC, providers.get(day.providerId()).tier());
             assertFalse(ClaimCsv.isWeekend(day.date()), day + " must be a weekday");
-            assertTrue(dataset.claims().stream().noneMatch(c ->
-                    c.providerId().equals(day.providerId()) && c.claimDate().equals(day.date())), day + " is not empty");
+            assertTrue(ordinary.stream().noneMatch(c ->
+                    c.providerId().equals(day.providerId()) && c.claimDate().equals(day.date())),
+                    day + " holds an ordinary claim");
         }
+        assertTrue(dataset.claims().stream().noneMatch(c -> c.providerId().equals(dataset.day30().providerId())
+                && c.claimDate().equals(dataset.day30().date())), "the 30-claim day stays empty until Task 15");
         assertNotEquals(dataset.phantomDay().providerId(), dataset.day30().providerId());
     }
 

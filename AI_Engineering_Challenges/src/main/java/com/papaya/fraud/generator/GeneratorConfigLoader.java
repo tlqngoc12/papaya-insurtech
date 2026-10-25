@@ -79,6 +79,15 @@ public final class GeneratorConfigLoader {
                 problems.add("band host " + name + ": planted share " + share + " above " + c.maxPlantedShare());
             }
         }
+        int weekdayOnly = c.dataset().providerTiers().weekdayOnlyHospitals();
+        int threes = c.weekendSurgery().hospitalsWithThreeClaims();
+        if (threes < 0 || threes > weekdayOnly || 3 * threes + 2 * (weekdayOnly - threes) != c.fraudCounts().weekendSurgery()) {
+            problems.add("weekend_surgery: 3 x hospitals_with_three_claims + 2 x the other weekday-only hospitals"
+                    + " must equal fraud_counts.weekend_surgery (Q13)");
+        }
+        if (c.bandHosts().isEmpty() || c.fraudCounts().bandAmount() % c.bandHosts().size() != 0) {
+            problems.add("fraud_counts.band_amount must split evenly over the band hosts");
+        }
         int generic = c.baseClaims() - c.bandHostBaseClaims() - c.chronic().followups();
         if (generic <= 0) {
             problems.add("no room left for generic base claims: " + generic);
