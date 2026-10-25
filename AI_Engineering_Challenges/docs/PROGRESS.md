@@ -9,8 +9,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 01 | Skeleton Maven, CLI stub, limitations, ai-log | done | `eb2fc4b` |
 | 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | `d8b8e1e` |
 | 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | `205b36e` |
-| 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | commit "Task 04" (mã điền ở lần cập nhật sau) |
-| 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | todo | |
+| 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | `98cb920` |
+| 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | commit "Task 05" (mã điền ở lần cập nhật sau) |
 | 06 | Rule duplicate và rapid re-submission | todo | |
 | 07 | Rule upcoding | todo | |
 | 08 | Rule unbundling và diagnosis-procedure mismatch | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Không có. Task 04 đã commit: 44 test xanh (Main 4, CatalogLoader 7, Catalog 6, ConfigLoader 12, ClaimCsvReader 12, ClaimCsvWriter 3). Chờ người dùng bảo bắt đầu Task 05.
+Task 05 đã commit: 54 test xanh. Bắt đầu Task 06.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 04 vào bảng trạng thái.
-2. Task 05: `DatasetIndex`, `Rule`, `Flag`, fixture builder.
-3. Task 06: rule duplicate và rapid re-submission.
+1. Điền mã commit Task 05 vào bảng trạng thái.
+2. Task 06: rule duplicate và rapid re-submission.
+3. Task 07: rule upcoding.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -87,8 +87,20 @@ Không có. Task 04 đã commit: 44 test xanh (Main 4, CatalogLoader 7, Catalog 
   - `is_weekend` không phân biệt hoa thường (Excel lưu `TRUE`/`FALSE`); `claim_type` phải viết hoa đúng.
   - CSV hỏng cấu trúc: dừng đọc, giữ các dòng đã đọc trước đó. Số dòng là dòng bắt đầu của row bị hỏng; thông báo kèm dòng nơi parser dừng (Jackson chỉ phát hiện thiếu nháy đóng ở cuối file).
   - Không giới hạn `claim_date` trong năm 2024.
+- 2026-10-25: Task 05, `DatasetIndex`.
+  - Đếm cuối tuần dùng `Claim.isWeekend()` (reader đã tính lại theo R11), không tính lại lần hai.
+  - Chữ ký procedure = các mã khác nhau, sắp xếp, nối bằng `|`; mã lặp trong một claim tính là một.
+  - `DatasetIndex.of` ném `IllegalArgumentException` khi `claim_id` trùng (lỗi lập trình, reader đã loại trước).
+  - `weekendRatioExcluding` trả rỗng khi provider không còn claim nào khác; ném lỗi khi claim không thuộc index.
+  - `Rule` là interface thường, seal ở Task 10.
 
 ## Ràng buộc cho các task sau
+
+**Task 07 (rule upcoding):**
+- SD = NaN (nhóm 1 claim) hoặc SD = 0 thì không flag (Q11).
+
+**Task 10 (rule weekend, rule cuối cùng):**
+- Đổi `Rule` thành `sealed interface ... permits` 8 class rule. Ở Task 05 chưa seal được vì javac báo `sealed class must have subclasses` khi chưa có class con (đã thử).
 
 **Task 11 (lệnh `score`):**
 - In ra số dòng bị loại và số cảnh báo khi đọc `claims.csv`.
