@@ -5,9 +5,8 @@ import com.papaya.fraud.catalog.CatalogLoader;
 import com.papaya.fraud.config.ConfigLoader;
 import com.papaya.fraud.config.FraudConfig;
 import com.papaya.fraud.engine.FraudEngine;
-import com.papaya.fraud.io.ClaimCsvReader;
 import com.papaya.fraud.io.LoadResult;
-import com.papaya.fraud.io.ScoredOutputWriter;
+import com.papaya.fraud.pipeline.ScoringPipeline;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.List;
@@ -40,14 +39,9 @@ public final class ScoreCommand {
         FraudConfig config = ConfigLoader.fromArgs(args.raw());
         Catalog catalog = CatalogLoader.loadDefault();
 
-        long start = System.nanoTime();
-        LoadResult loaded = new ClaimCsvReader(catalog).read(claimsFile);
-        long loadedAt = System.nanoTime();
-        FraudEngine engine = new FraudEngine(config, catalog);
-        FraudEngine.Result result = engine.run(loaded.claims());
-        long scoredAt = System.nanoTime();
-        ScoredOutputWriter.write(result.ranked(), outFile);
-        long writtenAt = System.nanoTime();
+        ScoringPipeline.Run run = ScoringPipeline.run(claimsFile, config, catalog, outFile);
+        LoadResult loaded = run.loaded();
+        FraudEngine.Result result = run.result();
 
         int read = loaded.claims().size() + loaded.rejected().size();
         out.printf(Locale.US, "Claims read:      %,d (%,d rejected, %,d warnings)%n", read, loaded.rejected().size(),
@@ -56,16 +50,12 @@ public final class ScoreCommand {
         long flagged = result.ranked().stream().filter(s -> !s.flags().isEmpty()).count();
         out.printf(Locale.US, "Claims flagged:   %,d%n", flagged);
         out.printf(Locale.US, "Time (ms):        load %d, score %d, write %d, total %d%n",
-                ms(start, loadedAt), ms(loadedAt, scoredAt), ms(scoredAt, writtenAt), ms(start, writtenAt));
-        engine.coverage(result.index()).forEach((rule, coverage) ->
+                run.loadMs(), run.scoreMs(), run.writeMs(), run.loadMs() + run.scoreMs() + run.writeMs());
+        run.engine().coverage(result.index()).forEach((rule, coverage) ->
                 out.printf(Locale.US, "Coverage %-29s %s%n", rule.id() + ":", coverage));
         out.println("Output:           " + outFile);
         loaded.rejected().forEach(r -> err.println("rejected line " + r.line() + ": " + r.reason()));
         loaded.warnings().forEach(w -> err.println("warning line " + w.line() + ": " + w.message()));
         return 0;
-    }
-
-    private static long ms(long from, long to) {
-        return (to - from) / 1_000_000;
     }
 }

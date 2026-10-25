@@ -1,21 +1,23 @@
 package com.papaya.fraud;
 
 import com.papaya.fraud.catalog.CatalogException;
+import com.papaya.fraud.cli.AllCommand;
+import com.papaya.fraud.cli.EvaluateCommand;
 import com.papaya.fraud.cli.GenerateCommand;
 import com.papaya.fraud.cli.ScoreCommand;
+import com.papaya.fraud.cli.TuneCommand;
 import com.papaya.fraud.config.ConfigException;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 
 /**
- * CLI entry point. Subcommands are wired in as their tasks land; until then they report "not implemented".
+ * CLI entry point: dispatches to the five subcommands and turns expected failures into a message and exit code 1.
  */
 public final class Main {
 
     static final int EXIT_OK = 0;
     static final int EXIT_USAGE = 1;
-    static final int EXIT_NOT_IMPLEMENTED = 2;
 
     static final List<String> COMMANDS = List.of("generate", "score", "tune", "evaluate", "all");
 
@@ -50,23 +52,26 @@ public final class Main {
         }
         List<String> rest = List.of(args).subList(1, args.length);
         try {
-            if (command.equals("score")) {
-                return ScoreCommand.run(rest, out, err);
-            }
-            if (command.equals("generate")) {
-                return GenerateCommand.run(rest, out, err);
+            switch (command) {
+                case "generate":
+                    return GenerateCommand.run(rest, out, err);
+                case "score":
+                    return ScoreCommand.run(rest, out, err);
+                case "tune":
+                    return TuneCommand.run(rest, out, err);
+                case "evaluate":
+                    return EvaluateCommand.run(rest, out, err);
+                case "all":
+                    return AllCommand.run(rest, out, err);
+                default:
+                    err.println("Unknown command: " + command);
+                    err.print(USAGE);
+                    return EXIT_USAGE;
             }
         } catch (ConfigException | CatalogException | UncheckedIOException | IllegalArgumentException
                  | IllegalStateException e) {
             err.println("Error: " + e.getMessage());
             return EXIT_USAGE;
         }
-        if (COMMANDS.contains(command)) {
-            err.println("Command '" + command + "' is not implemented yet.");
-            return EXIT_NOT_IMPLEMENTED;
-        }
-        err.println("Unknown command: " + command);
-        err.print(USAGE);
-        return EXIT_USAGE;
     }
 }

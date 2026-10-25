@@ -36,6 +36,15 @@ public final class FraudConfig {
         return weights.values().stream().mapToInt(Integer::intValue).sum();
     }
 
+    /** The same config with every weight set to 1; used only to report the ranking it would give (Task 16). */
+    public FraudConfig withEqualWeights() {
+        Map<RuleId, Integer> equal = new EnumMap<>(RuleId.class);
+        for (RuleId rule : RuleId.values()) {
+            equal.put(rule, 1);
+        }
+        return new FraudConfig(equal, params, threshold);
+    }
+
     public RuleParams params() {
         return params;
     }

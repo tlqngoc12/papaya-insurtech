@@ -1,0 +1,7 @@
+claim_id,is_fraud,fraud_pattern,related_claim_id,scenario
+CLM-00001,false,none,,base
+CLM-00002,true,duplicate_claim,CLM-00001,duplicate
+CLM-00003,true,rapid_resubmission,CLM-00002,resubmission
+CLM-00004,true,unbundling,,unbundle_full
+CLM-00005,false,none,,band_host
+CLM-00006,true,diagnosis_procedure_mismatch,,mismatch

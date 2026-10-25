@@ -1,17 +1,13 @@
 package com.papaya.fraud.cli;
 
 import com.papaya.fraud.catalog.CatalogLoader;
+import com.papaya.fraud.generator.DatasetFiles;
 import com.papaya.fraud.generator.DatasetGenerator;
 import com.papaya.fraud.generator.GeneratedDataset;
 import com.papaya.fraud.generator.GeneratorConfig;
 import com.papaya.fraud.generator.GeneratorConfigLoader;
 import com.papaya.fraud.generator.GroundTruthRow;
-import com.papaya.fraud.generator.GroundTruthWriter;
-import com.papaya.fraud.io.ClaimCsvWriter;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -50,13 +46,7 @@ public final class GenerateCommand {
 
         long start = System.nanoTime();
         GeneratedDataset dataset = new DatasetGenerator(config, CatalogLoader.loadDefault()).generate(seed);
-        try {
-            Files.createDirectories(dir);
-        } catch (IOException e) {
-            throw new UncheckedIOException("cannot create " + dir, e);
-        }
-        ClaimCsvWriter.write(dataset.claims(), dir.resolve("claims.csv"));
-        GroundTruthWriter.write(dataset.groundTruth(), dir.resolve("ground_truth.csv"));
+        DatasetFiles.Written written = DatasetFiles.write(dataset, dir);
         long ms = (System.nanoTime() - start) / 1_000_000;
 
         out.printf(Locale.US, "Seed %d: %,d claims, %,d members, %,d providers in %d ms%n", seed,
@@ -65,7 +55,7 @@ public final class GenerateCommand {
                 .forEach((k, v) -> out.printf(Locale.US, "  fraud_pattern %-28s %,d%n", k, v));
         count(dataset.groundTruth(), GroundTruthRow::scenario)
                 .forEach((k, v) -> out.printf(Locale.US, "  scenario      %-28s %,d%n", k, v));
-        out.println("Output: " + dir.resolve("claims.csv") + ", " + dir.resolve("ground_truth.csv"));
+        out.println("Output: " + written.claims() + ", " + written.labels());
         return 0;
     }
 

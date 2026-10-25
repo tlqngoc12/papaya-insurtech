@@ -41,6 +41,18 @@ public final class ConfigLoader {
         }
     }
 
+    /** Raw bytes of the bundled default config, e.g. to copy it into a frozen config or hash it. */
+    public static byte[] defaultBytes() {
+        try (InputStream in = ConfigLoader.class.getResourceAsStream(DEFAULT_RESOURCE)) {
+            if (in == null) {
+                throw new ConfigException("missing resource " + DEFAULT_RESOURCE);
+            }
+            return in.readAllBytes();
+        } catch (IOException e) {
+            throw new ConfigException("cannot read " + DEFAULT_RESOURCE + ": " + e.getMessage(), e);
+        }
+    }
+
     public static FraudConfig load(Path path) {
         if (!Files.isRegularFile(path)) {
             throw new ConfigException("config file not found: " + path);

@@ -50,8 +50,11 @@ class MainTest {
     }
 
     @Test
-    void knownCommandWithoutImplementationReportsNotImplemented() {
-        assertEquals(Main.EXIT_NOT_IMPLEMENTED, run("evaluate"));
-        assertTrue(err().contains("'evaluate' is not implemented yet"));
+    void everyCommandWithoutOptionsPrintsItsOwnUsage() {
+        for (String command : Main.COMMANDS) {
+            errBytes.reset();
+            assertEquals(Main.EXIT_USAGE, run(command), command);
+            assertTrue(err().contains("Usage: " + command + " "), command + ": " + err());
+        }
     }
 }

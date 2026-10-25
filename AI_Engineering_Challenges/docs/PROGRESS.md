@@ -20,8 +20,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | done | `f73fa05` |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | done | `4ad074b` |
 | 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | done | `08cfdc6` |
-| 15 | Near-miss và noise | done | commit "Task 15" (mã điền ở lần cập nhật sau) |
-| 16 | Metric, subcommand `evaluate` và `tune` | todo | |
+| 15 | Near-miss và noise | done | `f6d7481` |
+| 16 | Metric, subcommand `evaluate` và `tune` | done | commit "Task 16" (mã điền ở lần cập nhật sau) |
 | 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | todo | |
 | 18 | Held-out (seed 2024) và seed ổn định 101–105 | todo | |
 | 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
@@ -34,7 +34,7 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 15 đã commit: 162 test xanh. Dataset seed 42 đủ 2.000 claim (200 gian lận, 1.800 hợp lệ). Task 16: yêu cầu của người dùng bị cắt ở mục 9, chờ phần còn lại trước khi code.
+Task 16 đã commit: 189 test xanh. Chưa chạy `tune`/`evaluate` trên dataset thật (Task 17–18).
 
 Báo cáo kiểm tra seed 42 sau Task 15 (chỉ báo cáo, **không** dùng để chỉnh generator, **chưa phải số chính thức**): 256 claim bị flag. Gian lận bị flag bởi đúng rule: 196/200 (upcoding 26/30, phantom 25/25, các pattern khác đủ). Hợp lệ bị flag: 60 = band_noise 20 + phantom_day_legit 6 (đều cố ý) + band_host 7 + base 15 + natural_followup 12. Không near-miss nào bị flag.
 
@@ -50,9 +50,9 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
 
 ## Việc tiếp theo
 
-1. Commit Task 15 sau khi được duyệt.
-2. Task 16: metric, lệnh `evaluate` và `tune`.
-3. Task 17: tuning seed 42 và commit đóng băng.
+1. Điền mã commit Task 16 vào bảng trạng thái.
+2. Task 17: tuning seed 42, quyết định R4, commit đóng băng `config/frozen-config.json`.
+3. Task 18: held-out seed 2024 và seed ổn định 101–105.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -114,6 +114,16 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 16, metric và lệnh `tune`/`evaluate`/`all`.
+  - Dự đoán gian lận khi `risk_score >= T`. Báo cáo cả FPR chuẩn (FP / số claim hợp lệ) và FDR (FP / số claim bị flag), kèm định nghĩa (M1).
+  - Chọn T (S3): trong các T có FPR ≤ 20%, recall cao nhất, rồi FPR thấp nhất, rồi T lớn nhất; so sánh trên số đếm. `tune` báo lỗi và không ghi file nếu không T nào đạt FPR ≤ 20%, hoặc nếu T tốt nhất có TP = 0.
+  - `tune` ghi `frozen-config.json` và `threshold-sweep.json` cạnh nó; không ghi đè trừ khi có `--force`.
+  - `evaluate` và `tune` dừng nếu có dòng claim bị loại, hoặc nếu claims và ground truth không khớp `claim_id` theo cả hai chiều.
+  - `score` và `evaluate` dùng chung `pipeline.ScoringPipeline`, nên `scored_claims.json` giống hệt từng byte (có test).
+  - Thời gian load/score/write chỉ nằm trong `metrics_report.md`, ở mục riêng "Timing (varies from run to run)". `metrics.json` không chứa giá trị nào đổi theo lần chạy và giống hệt từng byte giữa hai lần chạy cùng dữ liệu (có test).
+  - `evaluate --seed <n>` là tùy chọn, chỉ để ghi vào báo cáo ("not given" nếu thiếu); `all` tự điền seed.
+  - Liên kết tới `docs/limitations.md`: đường dẫn tương đối từ thư mục output, tuyệt đối nếu khác ổ đĩa.
+  - Ví dụ chọn T trên fixture 6 claim của test. Gian lận: CLM-00004 (25 điểm), CLM-00002 (18), CLM-00003 (14), CLM-00006 (11). Hợp lệ: CLM-00005 (7), CLM-00001 (0). T = 1..7 flag thêm CLM-00005, FPR 1/2 = 50%, bị loại. T = 8..11 bắt đủ 4 claim gian lận, FP = 0; hoà nên chọn T lớn nhất là **11**. T = 12 bỏ sót CLM-00006.
 - 2026-10-25: Task 15, noise và near-miss: 20 `band_noise` (5 mỗi nhóm), 6 `phantom_day_legit` (ngày phantom đủ 31 claim), 25 near-miss theo 7 scenario (6 claim quanh dải nằm trong quota 32 của nhóm), 30 `day_30_claims`. Tổng đúng 2.000 claim; generator kiểm tra tổng khi kết thúc.
 - 2026-10-25: Task 14, generator gian lận (2): phantom 25 claim tại ngày giữ chỗ (member khác nhau); weekend 20 claim (4 × 3 + 4 × 2) phẫu thuật nội trú cuối tuần tại bệnh viện chỉ làm ngày thường, không P-2009; mismatch 20 claim thay đúng một procedure; clustering 20 claim, 5 mỗi nhóm. Thêm L9 mở rộng (masking giảm cả FP tự nhiên).
 - 2026-10-25: Task 13, generator gian lận (1): duplicate (copy y nguyên, bản sao đứng sau bản gốc), rapid (1–7 ngày, 70% cùng provider, nhiễu mới), upcoding (20 mạnh + 10 nhẹ, ≤ 3 mỗi nhóm, nhóm ≥ 30 claim, không phải nhóm clustering), unbundling (20 đủ thành phần + 5 thanh toán kép). Claim gốc của duplicate/rapid phải "cô lập" (không có claim cùng member + chẩn đoán trong ±7 ngày); claim gian lận mới đặt sao cho không có claim cùng member + chẩn đoán trong ±7 ngày.
