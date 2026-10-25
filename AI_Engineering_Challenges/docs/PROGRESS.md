@@ -8,8 +8,8 @@ Cập nhật lần cuối: 2026-10-25.
 |---|------|------------|--------|
 | 01 | Skeleton Maven, CLI stub, limitations, ai-log | done | `eb2fc4b` |
 | 02 | Danh mục mã (4 file JSON) và `CatalogLoader` | done | `d8b8e1e` |
-| 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | commit "Task 03" (mã điền ở lần cập nhật sau) |
-| 04 | Đọc/ghi CSV và validate đầu vào (R11) | todo | |
+| 03 | Config (`fraud-config.json`, `ConfigLoader`) | done | `205b36e` |
+| 04 | Đọc/ghi CSV và validate đầu vào (R11) | done | commit "Task 04" (mã điền ở lần cập nhật sau) |
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | todo | |
 | 06 | Rule duplicate và rapid re-submission | todo | |
 | 07 | Rule upcoding | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Không có. Task 03 đã commit: 29 test xanh (Main 4, CatalogLoader 7, Catalog 6, ConfigLoader 12). Chờ người dùng bảo bắt đầu Task 04.
+Không có. Task 04 đã commit: 44 test xanh (Main 4, CatalogLoader 7, Catalog 6, ConfigLoader 12, ClaimCsvReader 12, ClaimCsvWriter 3). Chờ người dùng bảo bắt đầu Task 05.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 03 vào bảng trạng thái.
-2. Task 04: `ClaimCsvReader` / `ClaimCsvWriter` và validate R11.
-3. Task 05: `DatasetIndex`, `Rule`, `Flag`, fixture builder.
+1. Điền mã commit Task 04 vào bảng trạng thái.
+2. Task 05: `DatasetIndex`, `Rule`, `Flag`, fixture builder.
+3. Task 06: rule duplicate và rapid re-submission.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -79,10 +79,22 @@ Không có. Task 03 đã commit: 29 test xanh (Main 4, CatalogLoader 7, Catalog 
   - `score` không cần T. Lỗi thiếu T (`requireThreshold()`) chỉ xảy ra ở `evaluate` và `all`. Không có T mặc định.
   - Thêm `rules.amount_clustering.auto_approval_threshold = 50000`, kiểm tra `upper_bound < auto_approval_threshold`. Evidence clustering lấy con số 50.000 từ trường này. Cả ba biên clustering đọc thành `long`, có test với giá trị vượt `Integer.MAX_VALUE`.
   - Ràng buộc tham số: `min_group_size ≥ 2`, `window_days ≥ 1`, `max_weekend_ratio` trong (0; 1), `threshold` 1–100.
+- 2026-10-25: Task 04, đọc/ghi CSV và validate.
+  - `claim_id` trùng: giữ dòng đầu, loại các dòng sau.
+  - Header sai: không đọc file, trả về 1 dòng bị loại ở dòng 1. Thông báo nêu rõ cột lạ và cột thiếu. Header có thêm `is_fraud` bị từ chối (bảo vệ ràng buộc "engine không đọc ground truth").
+  - `procedure_codes` có mã rỗng (ví dụ `P-1001|`): loại dòng.
+  - Bắt buộc khác rỗng: `claim_id`, `member_id`, `provider_id`, `claim_date`, `claim_type`, `diagnosis_code`, `submitted_amount`. `provider_name` được rỗng; `is_weekend` rỗng chỉ cảnh báo.
+  - `is_weekend` không phân biệt hoa thường (Excel lưu `TRUE`/`FALSE`); `claim_type` phải viết hoa đúng.
+  - CSV hỏng cấu trúc: dừng đọc, giữ các dòng đã đọc trước đó. Số dòng là dòng bắt đầu của row bị hỏng; thông báo kèm dòng nơi parser dừng (Jackson chỉ phát hiện thiếu nháy đóng ở cuối file).
+  - Không giới hạn `claim_date` trong năm 2024.
 
 ## Ràng buộc cho các task sau
 
+**Task 11 (lệnh `score`):**
+- In ra số dòng bị loại và số cảnh báo khi đọc `claims.csv`.
+
 **Task 12 (generator hợp lệ):**
+- Dataset do generator sinh ra, khi đọc lại bằng `ClaimCsvReader`, phải cho **0 dòng bị loại và 0 cảnh báo**. Sẽ có test kiểm tra.
 - Claim chỉ có P-0001 với chẩn đoán chỉ nội trú phải có trọng số rất thấp.
 - Số lượng claim của 4 nhóm phương án 3 do generator quyết, nhưng: mỗi nhóm **ít nhất 30 claim**, và claim cài (clustering gian lận + R9 `legit_noise`) chiếm **không quá 25%** mỗi nhóm. Sẽ có test kiểm tra.
 
