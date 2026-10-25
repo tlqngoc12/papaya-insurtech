@@ -23,7 +23,7 @@ Cập nhật lần cuối: 2026-10-25.
 | 15 | Near-miss và noise | done | `f6d7481` |
 | 16 | Metric, subcommand `evaluate` và `tune` | done | `bae0be7` |
 | 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | done | `c93d367`, tag `frozen-before-heldout` |
-| 18 | Held-out (seed 2024) và seed ổn định 101–105 | doing | 18a: commit "Task 18a" (mã điền ở lần cập nhật sau) |
+| 18 | Held-out (seed 2024) và seed ổn định 101–105 | done | 18a `68e6309`, 18b `e2efa0d`, 18c `cfdf676`, 18d commit "Task 18" (mã điền ở lần cập nhật sau) |
 | 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
 
 Commit ngoài kế hoạch:
@@ -33,6 +33,15 @@ Commit ngoài kế hoạch:
 - `045729e` Add generator spec and limitations L10-L12.
 
 ## Đang làm
+
+Task 18: sau khi dừng ở bước 3, người dùng chọn phương án (a). Đã commit 18b (`e2efa0d`, bỏ đường dẫn đầu vào khỏi `metrics.json` và báo cáo, chỉ trình bày) và 18c (`cfdf676`, sinh lại báo cáo tuning theo định dạng mới, không đổi số). Sau đó `evaluate` và `all --seed 2024` cho cả bốn file (`claims.csv`, `ground_truth.csv`, `scored_claims.json`, `metrics.json`) giống hệt từng byte. Đã kiểm chứng bằng SHA-256 rằng không điểm hay metric nào đổi (chi tiết ở `limitations.md`, L16). Tag `frozen-before-heldout` vẫn ở `c93d367`.
+
+Task 18 đã commit đủ (18a–18d), 192 test xanh kể cả `HeldOutIntegrationTest`. Chưa push. Bước tiếp theo: Task 19 (writeup). Kết quả:
+- `HeldOutIntegrationTest` chạy riêng: **đạt** (recall 0,9650, FPR 0,0444, T = 7 đọc từ file).
+- Held-out seed 2024, T = 7: TP 193, FP 80, FN 7, TN 1.720; recall 96,5%, FPR chuẩn 4,4% (PASS), FDR 29,3% (FAIL theo cách hiểu thứ hai), precision 70,7%. Recall thấp nhất: upcoding 76,7%.
+- Seed 101–105 (`reports/stability/summary.md`, tính bằng `scripts/StabilitySummary.java`): recall trung bình 97,6% (SD 0,74 pp), FPR 4,2% (SD 0,37 pp), FDR 28,0% (SD 1,70 pp), precision 72,0% (SD 1,70 pp); recall thấp nhất của một pattern 76,7–90,0% (luôn là upcoding).
+
+Dòng tóm tắt held-out đã thấy **trước** thay đổi trình bày: T = 7, recall 96,5%, FPR chuẩn 4,4%, FDR 29,3%, precision 70,7% (TP 193, FP 80, FN 7, TN 1.720).
 
 Task 18a: đã viết `HeldOutIntegrationTest` (test #37) **trước** khi sinh hay chạy bất cứ thứ gì về held-out; commit riêng, chưa chạy test này. Các test khác: 189 test xanh khi loại trừ test held-out. Sửa một chỗ lệch Q19 (trước khi nhìn held-out): test chấm 100.000 claim trong `FraudEngineTest` có giới hạn **120 giây**, Q19 chốt **< 30 giây**; đã đổi thành 30 giây (lần chạy này: 2.414 ms).
 
@@ -120,6 +129,9 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 18, quy trình:
+  - Trước khi nhìn held-out: đổi giới hạn test 100.000 claim từ 120 s xuống 30 s cho đúng Q19 (`68e6309`).
+  - Sau khi đã thấy dòng tóm tắt held-out (recall 96,5%, FPR 4,4%): thay đổi **chỉ về trình bày** (`e2efa0d`, `cfdf676`). `metrics.json` chỉ giữ SHA-256 của đầu vào; `metrics_report.md` ghi tên file, không đường dẫn. Đã kiểm chứng bằng SHA-256 rằng không điểm hay metric nào đổi (L16).
 - 2026-10-25: Task 17, quyết định trên tuning seed 42 (đã ghi nguyên văn vào `design-decisions.md`, mục S3 và R4):
   - T = 7. Lý do: Giữ tiêu chí đã chốt trước khi chạy: T là giá trị cho recall cao nhất với FPR chuẩn <= 20% (đúng chữ của đề). Trên tuning T = 7 cho recall 98,0%, FPR 3,3%. FDR 23,4% không đạt nếu hiểu "FPR" theo nghĩa tỉ lệ cảnh báo sai; mình báo cáo cả hai cách hiểu thay vì đổi tiêu chí. T = 11 qua cả hai cách hiểu (FDR 9,3%) nhưng recall còn 73,0% (biên 3 điểm), rapid và clustering không bao giờ được bắt khi đứng một mình, và vi phạm mục tiêu nội bộ recall >= 85%.
   - R4: giữ R4-A (z-score, thống kê gồm cả claim đang xét). Lý do: Tiêu chí đổi sang median/MAD đặt trước là recall upcoding < 70% trên tuning; thực tế 86,7% (26/30) nên không kích hoạt. Bốn claim sót là ba claim tăng nhẹ và CLM-01130 bị masking, là giới hạn đã biết của z-score (L9). Đổi rule sau khi đã thấy số là chỉnh cho đẹp.

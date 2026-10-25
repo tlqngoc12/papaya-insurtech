@@ -1,0 +1,324 @@
+{
+  "inputs": {
+    "seed": "102",
+    "claims_sha256": "28091bed6b8f5396990dcf67b2b37b1dee4ac4d44dd6b49beb3a07ffb9339070",
+    "config_sha256": "114e7f8a62011c34026380ab8dcf44987afa41d4bf4054826c5098deb52e9cb0"
+  },
+  "threshold": 7,
+  "confusion": {
+    "threshold": 7,
+    "tp": 195,
+    "fp": 70,
+    "fn": 5,
+    "tn": 1730,
+    "precision": 0.7358490566037735,
+    "recall": 0.975,
+    "fpr_standard": 0.03888888888888889,
+    "fdr": 0.2641509433962264,
+    "f1": 0.8387096774193549
+  },
+  "targets": {
+    "recall_at_least_70": true,
+    "fpr_standard_at_most_20": true,
+    "fdr_at_most_20": false
+  },
+  "recall_by_group": [
+    {
+      "group": "reference_table",
+      "patterns": [
+        "duplicate_claim",
+        "unbundling",
+        "diagnosis_procedure_mismatch"
+      ],
+      "claims": 75,
+      "caught": 75,
+      "recall": 1.0
+    },
+    {
+      "group": "statistical",
+      "patterns": [
+        "rapid_resubmission",
+        "upcoding",
+        "phantom_billing",
+        "weekend_anomaly",
+        "amount_clustering"
+      ],
+      "claims": 125,
+      "caught": 120,
+      "recall": 0.96
+    }
+  ],
+  "recall_by_pattern": [
+    {
+      "pattern": "duplicate_claim",
+      "claims": 30,
+      "caught": 30,
+      "recall": 1.0,
+      "flagged_by_own_rule": 30
+    },
+    {
+      "pattern": "rapid_resubmission",
+      "claims": 30,
+      "caught": 30,
+      "recall": 1.0,
+      "flagged_by_own_rule": 30
+    },
+    {
+      "pattern": "upcoding",
+      "claims": 30,
+      "caught": 25,
+      "recall": 0.8333333333333334,
+      "flagged_by_own_rule": 25
+    },
+    {
+      "pattern": "unbundling",
+      "claims": 25,
+      "caught": 25,
+      "recall": 1.0,
+      "flagged_by_own_rule": 25
+    },
+    {
+      "pattern": "phantom_billing",
+      "claims": 25,
+      "caught": 25,
+      "recall": 1.0,
+      "flagged_by_own_rule": 25
+    },
+    {
+      "pattern": "weekend_anomaly",
+      "claims": 20,
+      "caught": 20,
+      "recall": 1.0,
+      "flagged_by_own_rule": 20
+    },
+    {
+      "pattern": "diagnosis_procedure_mismatch",
+      "claims": 20,
+      "caught": 20,
+      "recall": 1.0,
+      "flagged_by_own_rule": 20
+    },
+    {
+      "pattern": "amount_clustering",
+      "claims": 20,
+      "caught": 20,
+      "recall": 1.0,
+      "flagged_by_own_rule": 20
+    }
+  ],
+  "precision_by_rule": [
+    {
+      "rule": "duplicate_claim",
+      "flagged": 30,
+      "fraud_any_pattern": 30,
+      "fraud_same_pattern": 30,
+      "precision_any": 1.0,
+      "precision_same_pattern": 1.0
+    },
+    {
+      "rule": "rapid_resubmission",
+      "flagged": 52,
+      "fraud_any_pattern": 30,
+      "fraud_same_pattern": 30,
+      "precision_any": 0.5769230769230769,
+      "precision_same_pattern": 0.5769230769230769
+    },
+    {
+      "rule": "upcoding",
+      "flagged": 36,
+      "fraud_any_pattern": 25,
+      "fraud_same_pattern": 25,
+      "precision_any": 0.6944444444444444,
+      "precision_same_pattern": 0.6944444444444444
+    },
+    {
+      "rule": "unbundling",
+      "flagged": 25,
+      "fraud_any_pattern": 25,
+      "fraud_same_pattern": 25,
+      "precision_any": 1.0,
+      "precision_same_pattern": 1.0
+    },
+    {
+      "rule": "phantom_billing",
+      "flagged": 31,
+      "fraud_any_pattern": 25,
+      "fraud_same_pattern": 25,
+      "precision_any": 0.8064516129032258,
+      "precision_same_pattern": 0.8064516129032258
+    },
+    {
+      "rule": "weekend_anomaly",
+      "flagged": 20,
+      "fraud_any_pattern": 20,
+      "fraud_same_pattern": 20,
+      "precision_any": 1.0,
+      "precision_same_pattern": 1.0
+    },
+    {
+      "rule": "diagnosis_procedure_mismatch",
+      "flagged": 20,
+      "fraud_any_pattern": 20,
+      "fraud_same_pattern": 20,
+      "precision_any": 1.0,
+      "precision_same_pattern": 1.0
+    },
+    {
+      "rule": "amount_clustering",
+      "flagged": 52,
+      "fraud_any_pattern": 20,
+      "fraud_same_pattern": 20,
+      "precision_any": 0.38461538461538464,
+      "precision_same_pattern": 0.38461538461538464
+    }
+  ],
+  "legit_by_scenario": [
+    {
+      "label": "legit_near_miss",
+      "scenario": "day_30_claims",
+      "claims": 30,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_band_above",
+      "claims": 3,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_band_below",
+      "claims": 3,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_mild_amount",
+      "claims": 4,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_partial_bundle",
+      "claims": 4,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_resubmission_8_days",
+      "claims": 4,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_same_day_other_diagnosis",
+      "claims": 3,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_near_miss",
+      "scenario": "near_miss_weekend_surgery",
+      "claims": 4,
+      "flagged_at_threshold": 0,
+      "flags_by_rule": { }
+    },
+    {
+      "label": "legit_noise",
+      "scenario": "band_noise",
+      "claims": 20,
+      "flagged_at_threshold": 20,
+      "flags_by_rule": {
+        "amount_clustering": 20
+      }
+    },
+    {
+      "label": "legit_noise",
+      "scenario": "phantom_day_legit",
+      "claims": 6,
+      "flagged_at_threshold": 6,
+      "flags_by_rule": {
+        "phantom_billing": 6
+      }
+    },
+    {
+      "label": "none",
+      "scenario": "band_host",
+      "claims": 122,
+      "flagged_at_threshold": 12,
+      "flags_by_rule": {
+        "amount_clustering": 12
+      }
+    },
+    {
+      "label": "none",
+      "scenario": "base",
+      "claims": 1585,
+      "flagged_at_threshold": 20,
+      "flags_by_rule": {
+        "rapid_resubmission": 10,
+        "upcoding": 10
+      }
+    },
+    {
+      "label": "none",
+      "scenario": "natural_followup",
+      "claims": 12,
+      "flagged_at_threshold": 12,
+      "flags_by_rule": {
+        "rapid_resubmission": 12,
+        "upcoding": 1
+      }
+    }
+  ],
+  "precision_at_k": [
+    {
+      "k": 50,
+      "fraud_engine": 45,
+      "precision_engine": 0.9,
+      "fraud_equal_weights": 30,
+      "precision_equal_weights": 0.6
+    },
+    {
+      "k": 100,
+      "fraud_engine": 88,
+      "precision_engine": 0.88,
+      "fraud_equal_weights": 65,
+      "precision_equal_weights": 0.65
+    },
+    {
+      "k": 200,
+      "fraud_engine": 164,
+      "precision_engine": 0.82,
+      "fraud_equal_weights": 146,
+      "precision_equal_weights": 0.73
+    }
+  ],
+  "coverage": {
+    "upcoding": {
+      "evaluated": 1673,
+      "skipped_multi_procedure": 324,
+      "skipped_small_group": 3,
+      "skipped_zero_sd": 0
+    },
+    "unbundling": {
+      "evaluated": 324,
+      "skipped_single_procedure": 1676
+    },
+    "weekend_anomaly": {
+      "evaluated": 44,
+      "skipped_short_history": 3
+    },
+    "diagnosis_procedure_mismatch": {
+      "evaluated": 2000,
+      "skipped_unknown_diagnosis": 0,
+      "with_unknown_procedure": 0
+    }
+  }
+}

@@ -98,3 +98,11 @@ Không claim near-miss nào bị flag trên tuning. Điều này chỉ cho thấ
 *Nguồn: Task 17, S3, L2.*
 
 Rapid và clustering có trọng số 2, nên một claim chỉ kích hoạt một trong hai rule này có điểm round(100 × 2 / 28) = 7. Với T ≥ 8, recall của hai pattern này bằng 0 trừ khi claim kích hoạt thêm rule khác: trên tuning, recall tổng giảm từ 98,0% (T = 7) xuống 73,0% (T = 8). T = 7 vì vậy là điều kiện để hai rule này có tác dụng, và lựa chọn T gắn chặt với trọng số của chúng.
+
+## L16. Hai thay đổi trong lúc đo held-out (minh bạch quy trình)
+
+*Nguồn: Task 18a, 18b, 18c.*
+
+- **Trước khi nhìn held-out:** test chấm 100.000 claim trong `FraudEngineTest` có giới hạn 120 giây, lệch Q19 (< 30 giây). Đã đổi thành 30 giây (commit `68e6309`); lần chạy đó mất 2.414 ms.
+- **Sau khi đã thấy dòng tóm tắt held-out** (recall 96,5%, FPR chuẩn 4,4%, in ra khi chạy `evaluate`): phát hiện `metrics.json` chứa đường dẫn file đầu vào, nên hai lần chạy cùng dữ liệu ở hai đường dẫn khác nhau cho file khác nhau. Đã sửa **chỉ về trình bày** (commit `e2efa0d`): `metrics.json` chỉ còn SHA-256 của đầu vào, `metrics_report.md` chỉ ghi tên file và không còn đường dẫn tuyệt đối. Không đổi rule, trọng số, tham số, T hay generator.
+- **Kiểm chứng bằng SHA-256** rằng không điểm hay metric nào thay đổi: `reports/tuning/scored_claims.json` giữ nguyên `b9e7e4fe…7096` (commit `cfdf676`); `reports/heldout/scored_claims.json` giữ nguyên `6bf48c7e…d9af` so với bản trước khi sửa; `metrics.json` của cả hai chỉ mất hai dòng `claims_file` và `config_file`, mọi giá trị khác giống hệt. Dataset held-out (`claims.csv`, `ground_truth.csv`) không đổi.
