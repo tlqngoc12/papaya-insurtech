@@ -13,8 +13,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 05 | `DatasetIndex`, `Rule`, `Flag`, fixture builder | done | `7bda7e6` |
 | 06 | Rule duplicate và rapid re-submission | done | `75c1ef6` |
 | 07 | Rule upcoding | done | `9d6f6e6` |
-| 08 | Rule unbundling và diagnosis-procedure mismatch | done | commit "Task 08" (mã điền ở lần cập nhật sau) |
-| 09 | Rule phantom billing và amount clustering | todo | |
+| 08 | Rule unbundling và diagnosis-procedure mismatch | done | `ec09b94` |
+| 09 | Rule phantom billing và amount clustering | done | commit "Task 09" (mã điền ở lần cập nhật sau) |
 | 10 | Rule weekend anomaly | todo | |
 | 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | todo | |
 | 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | todo | |
@@ -30,13 +30,13 @@ Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endin
 
 ## Đang làm
 
-Task 08 đã commit: 80 test xanh. Bắt đầu Task 09.
+Task 09 đã commit: 91 test xanh. Bắt đầu Task 10.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 08 vào bảng trạng thái.
-2. Task 09: rule phantom billing và amount clustering.
-3. Task 10: rule weekend anomaly, seal `Rule`.
+1. Điền mã commit Task 09 và commit sửa BOM vào bảng trạng thái.
+2. Task 10: rule weekend anomaly, seal `Rule`.
+3. Task 11: chấm điểm, xếp hạng, `FraudEngine`, lệnh `score`.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -98,11 +98,21 @@ Task 08 đã commit: 80 test xanh. Bắt đầu Task 09.
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 09, phantom và clustering.
+  - Phantom: > `max_claims_per_day` (30, nghiêm ngặt) thì flag mọi claim của provider-ngày; tra qua `DatasetIndex`.
+  - Clustering: `lower_bound ≤ amount ≤ upper_bound` (47.500–49.999); evidence ghi phần trăm so với `auto_approval_threshold`, một chữ số thập phân, **cắt bớt** (49.999 hiện 99.9%).
+  - Sửa ký tự U+FEFF thật trong `ClaimCsvReader.java` thành escape `'﻿'`, commit riêng.
 - 2026-10-25: Task 08, unbundling và mismatch.
   - Unbundling: đủ mọi thành phần của một bundle (bất kể chẩn đoán), hoặc mã gói cùng bất kỳ thành phần nào. Thiếu thành phần thì không flag. Một flag mỗi claim, evidence liệt kê mọi bundle khớp kèm tổng giá gốc thành phần so với giá gói.
   - Nhãn evidence: "Unbundling", "Double billing" (mã gói + thành phần), hoặc "Unbundling and double billing" khi claim có cả hai loại. Rule và severity không đổi.
   - Mismatch: chỉ flag khi chẩn đoán có trong whitelist và có ít nhất một procedure đã biết không hợp lệ. Chẩn đoán lạ không flag; procedure lạ bị bỏ qua và đếm vào coverage.
 - 2026-10-25: Task 07, upcoding: mean/SD tính cả claim đang xét (R4-A); nhóm < `n_min` hoặc SD = 0/NaN thì không flag; z > `z_threshold` nghiêm ngặt. Evidence ghi mean và SD với 1 chữ số thập phân, z với 2 chữ số, để người đọc tự tính lại được z.
+
+## Interpretations (cho writeup)
+
+Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Interpretations" của writeup (cùng với R2, R3, R7, R8 theo Q23).
+
+- Phần trăm trong evidence được cắt bớt, không làm tròn, để không bao giờ hiển thị 100%.
 
 ## Ràng buộc cho các task sau
 
