@@ -26,3 +26,15 @@ Upcoding, weekend anomaly và rapid re-submission dùng thống kê trên toàn 
 *Nguồn: R5.*
 
 Trường hợp tách các thành phần của một bundle ra nhiều claim cùng member, provider và ngày không bị phát hiện bởi rule unbundling.
+
+## L5. Số tiền claim unbundled bị cắt dưới dải clustering
+
+*Nguồn: Task 02, mục (c)2; D12, Q4.*
+
+Để mỗi claim gian lận chỉ mang một pattern (D12), generator cắt nhiễu của claim unbundled sao cho số tiền không vượt 47.000, tức không bao giờ rơi vào dải clustering 47.500–49.999. Ví dụ, gói cholecystectomy có tổng thành phần 37.000, nên nhiễu +2σ có thể đẩy số tiền vào dải. Hệ quả: trong dữ liệu sinh ra, unbundling và amount clustering không bao giờ cùng xuất hiện trên một claim. Gian lận thật có thể kết hợp cả hai, và engine chưa được đo trên trường hợp đó.
+
+## L6. Cờ `surgical` là định nghĩa riêng của bài
+
+*Nguồn: Task 02, R7.*
+
+Rule weekend anomaly dựa vào cờ `surgical` trong `procedures.json`. Cờ này do mình tự gán, không theo một chuẩn phân loại thủ thuật nào. Cụ thể, PCI (P-2011) và coronary angiography (P-2010) là thủ thuật can thiệp qua da nên được để `surgical = false`. Một hệ thống thật cần một nguồn phân loại thủ thuật chính thức, và kết quả weekend anomaly sẽ thay đổi theo định nghĩa đó.
