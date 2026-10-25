@@ -31,7 +31,7 @@ import java.util.Map;
  */
 public final class ClaimCsvReader {
 
-    private static final char BOM = '﻿';
+    private static final char BOM = '\uFEFF';
     private static final CsvMapper MAPPER = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     private final Catalog catalog;
