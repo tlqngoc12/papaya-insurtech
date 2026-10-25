@@ -4,7 +4,6 @@ import com.papaya.fraud.catalog.Bundle;
 import com.papaya.fraud.catalog.Catalog;
 import com.papaya.fraud.config.FraudConfig;
 import com.papaya.fraud.engine.DatasetIndex;
-import com.papaya.fraud.engine.Rule;
 import com.papaya.fraud.model.Claim;
 import com.papaya.fraud.model.Flag;
 import com.papaya.fraud.model.RuleId;

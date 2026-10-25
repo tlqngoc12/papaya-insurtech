@@ -182,6 +182,16 @@ public final class DatasetIndex {
         return byProvider.getOrDefault(providerId, NO_VOLUME);
     }
 
+    /** The provider's volume without this claim: total and weekend counts of its other claims (D11, R7). */
+    public ProviderVolume volumeExcluding(Claim claim) {
+        Claim indexed = byId.get(claim.claimId());
+        if (indexed == null) {
+            throw new IllegalArgumentException("claim " + claim.claimId() + " is not in the index");
+        }
+        ProviderVolume v = providerVolume(indexed.providerId());
+        return new ProviderVolume(v.total() - 1, v.weekend() - (indexed.isWeekend() ? 1 : 0));
+    }
+
     /** Number of the provider's claims other than this one: the leave-one-out history size (Q12). */
     public int historyExcluding(Claim claim) {
         return Math.max(0, providerVolume(claim.providerId()).total() - 1);
@@ -192,17 +202,11 @@ public final class DatasetIndex {
      * no other claim.
      */
     public OptionalDouble weekendRatioExcluding(Claim claim) {
-        Claim indexed = byId.get(claim.claimId());
-        if (indexed == null) {
-            throw new IllegalArgumentException("claim " + claim.claimId() + " is not in the index");
-        }
-        ProviderVolume v = providerVolume(indexed.providerId());
-        int others = v.total() - 1;
-        if (others <= 0) {
+        ProviderVolume others = volumeExcluding(claim);
+        if (others.total() <= 0) {
             return OptionalDouble.empty();
         }
-        int weekendOthers = v.weekend() - (indexed.isWeekend() ? 1 : 0);
-        return OptionalDouble.of((double) weekendOthers / others);
+        return OptionalDouble.of((double) others.weekend() / others.total());
     }
 
     private static <K> NavigableMap<K, List<Claim>> freezeLists(TreeMap<K, List<Claim>> map) {

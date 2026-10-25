@@ -14,8 +14,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 06 | Rule duplicate và rapid re-submission | done | `75c1ef6` |
 | 07 | Rule upcoding | done | `9d6f6e6` |
 | 08 | Rule unbundling và diagnosis-procedure mismatch | done | `ec09b94` |
-| 09 | Rule phantom billing và amount clustering | done | commit "Task 09" (mã điền ở lần cập nhật sau) |
-| 10 | Rule weekend anomaly | todo | |
+| 09 | Rule phantom billing và amount clustering | done | `d3d62a7` |
+| 10 | Rule weekend anomaly | done | commit "Task 10" (mã điền ở lần cập nhật sau) |
 | 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | todo | |
 | 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | todo | |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | todo | |
@@ -26,17 +26,20 @@ Cập nhật lần cuối: 2026-10-25.
 | 18 | Held-out (seed 2024) và seed ổn định 101–105 | todo | |
 | 19 | Writeup: README, interpretations, timeline, limitations, ai-log | todo | |
 
-Commit ngoài kế hoạch: `d335972` Add .gitattributes to normalize line endings to LF.
+Commit ngoài kế hoạch:
+- `d335972` Add .gitattributes to normalize line endings to LF.
+- `c871aa9` Add CLAUDE.md and PROGRESS.md, update limitations.
+- `f915033` Fix: use ﻿ escape in ClaimCsvReader.
 
 ## Đang làm
 
-Task 09 đã commit: 91 test xanh. Bắt đầu Task 10.
+Task 10 đã commit: 100 test xanh, `Rule` đã seal. Bắt đầu Task 11.
 
 ## Việc tiếp theo
 
-1. Điền mã commit Task 09 và commit sửa BOM vào bảng trạng thái.
-2. Task 10: rule weekend anomaly, seal `Rule`.
-3. Task 11: chấm điểm, xếp hạng, `FraudEngine`, lệnh `score`.
+1. Điền mã commit Task 10 vào bảng trạng thái.
+2. Task 11: chấm điểm, xếp hạng, `FraudEngine`, lệnh `score`.
+3. Task 12: generator phần claim hợp lệ.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -98,6 +101,10 @@ Task 09 đã commit: 91 test xanh. Bắt đầu Task 10.
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 10, weekend anomaly.
+  - Flag khi: claim cuối tuần, có ít nhất một procedure `surgical` trong catalog, lịch sử provider (loại claim đang xét) ≥ `min_history` (20), tỉ lệ cuối tuần leave-one-out < `max_weekend_ratio` (5%, nghiêm ngặt). Mã lạ không tính là phẫu thuật.
+  - Thêm `DatasetIndex.volumeExcluding(claim)`; phần trăm cắt bớt chuyển vào `Evidence.percent`, dùng chung với clustering.
+  - Seal `Rule`: chọn phương án (a), chuyển `Rule` sang `engine.rules` vì sealed type trong unnamed module chỉ cho phép class con cùng package (javac báo lỗi khi khác package).
 - 2026-10-25: Task 09, phantom và clustering.
   - Phantom: > `max_claims_per_day` (30, nghiêm ngặt) thì flag mọi claim của provider-ngày; tra qua `DatasetIndex`.
   - Clustering: `lower_bound ≤ amount ≤ upper_bound` (47.500–49.999); evidence ghi phần trăm so với `auto_approval_threshold`, một chữ số thập phân, **cắt bớt** (49.999 hiện 99.9%).
@@ -115,9 +122,6 @@ Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Inte
 - Phần trăm trong evidence được cắt bớt, không làm tròn, để không bao giờ hiển thị 100%.
 
 ## Ràng buộc cho các task sau
-
-**Task 10 (rule weekend, rule cuối cùng):**
-- Đổi `Rule` thành `sealed interface ... permits` 8 class rule. Ở Task 05 chưa seal được vì javac báo `sealed class must have subclasses` khi chưa có class con (đã thử).
 
 **Task 11 (lệnh `score`):**
 - In ra số dòng bị loại và số cảnh báo khi đọc `claims.csv`.
@@ -139,6 +143,7 @@ Các diễn giải thêm so với chữ của đề, sẽ đưa vào mục "Inte
 **Task 16 (metric):**
 - Báo cáo `UpcodingRule.coverage(index)`: số claim được xét, bỏ qua vì nhiều procedure, vì nhóm < `n_min`, vì SD = 0.
 - Báo cáo `UnbundlingRule.coverage(index)`: số claim được xét (ít nhất 2 mã khác nhau), bỏ qua vì chỉ có một procedure.
+- Báo cáo `WeekendAnomalyRule.coverage(index)`: số claim cuối tuần có phẫu thuật được xét, và số bị bỏ qua vì lịch sử provider dưới `min_history`.
 - Báo cáo `DiagnosisProcedureMismatchRule.coverage(index)`: số claim được xét, bỏ qua vì chẩn đoán không có trong whitelist, và số claim được xét có mã procedure không có trong catalog (mã đó bị bỏ qua).
 
 ## Ghi chú cho phiên sau

@@ -3,7 +3,6 @@ package com.papaya.fraud.engine.rules;
 import com.papaya.fraud.config.FraudConfig;
 import com.papaya.fraud.config.RuleParams;
 import com.papaya.fraud.engine.DatasetIndex;
-import com.papaya.fraud.engine.Rule;
 import com.papaya.fraud.model.Claim;
 import com.papaya.fraud.model.Flag;
 import com.papaya.fraud.model.RuleId;
@@ -34,8 +33,7 @@ public final class AmountClusteringRule implements Rule {
      */
     static String percentOfThreshold(long amount, long threshold) {
         // Truncated, not rounded, so the evidence never shows 100% for an amount below the threshold.
-        long permille = amount * 1000 / threshold;
-        return permille / 10 + "." + permille % 10;
+        return Evidence.percent(amount, threshold);
     }
 
     @Override
