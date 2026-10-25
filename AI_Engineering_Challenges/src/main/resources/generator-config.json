@@ -145,6 +145,17 @@
     ]
   },
   "mismatch": { "excluded_replacements": ["P-2009", "P-2010"] },
+  "near_miss_detail": {
+    "band_below_amount": { "min": 47000, "max": 47499 },
+    "band_above_amount": { "min": 50000, "max": 50500 },
+    "resubmission_gap": 8,
+    "mild_amount_factor": { "min": 1.25, "max": 1.28 },
+    "partial_bundle_templates": [
+      { "diagnosis": "I10", "procedures": ["P-1005", "P-1006"], "weight": 1 },
+      { "diagnosis": "E11.9", "procedures": ["P-1004", "P-1006"], "weight": 1 },
+      { "diagnosis": "N39.0", "procedures": ["P-1003"], "weight": 1 }
+    ]
+  },
   "phantom_day": { "fraud_claims": 25, "legit_claims": 6 },
   "noise": {
     "band_legit_claims": 20,

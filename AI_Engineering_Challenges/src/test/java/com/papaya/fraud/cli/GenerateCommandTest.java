@@ -35,12 +35,12 @@ class GenerateCommandTest {
         List<String> truth = Files.readAllLines(dir.resolve("ground_truth.csv"));
         assertEquals("claim_id,is_fraud,fraud_pattern,related_claim_id,scenario", truth.get(0));
         assertEquals(claims.size(), truth.size());
-        assertTrue(out.toString(StandardCharsets.UTF_8).startsWith("Seed 42: 1,919 claims, 500 members, 50 providers"));
+        assertTrue(out.toString(StandardCharsets.UTF_8).startsWith("Seed 42: 2,000 claims, 500 members, 50 providers"));
 
         out.reset();
         assertEquals(0, main("score", "--claims", dir.resolve("claims.csv").toString(),
                 "--out", tmp.resolve("scored.json").toString()));
-        assertTrue(out.toString(StandardCharsets.UTF_8).contains("Claims read:      1,919 (0 rejected, 0 warnings)"));
+        assertTrue(out.toString(StandardCharsets.UTF_8).contains("Claims read:      2,000 (0 rejected, 0 warnings)"));
     }
 
     @Test

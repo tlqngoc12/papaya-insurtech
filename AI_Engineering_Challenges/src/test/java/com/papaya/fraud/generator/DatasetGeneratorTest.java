@@ -66,7 +66,7 @@ class DatasetGeneratorTest {
     void producesTheBaseClaimCountAndUsesEveryMemberAndProvider() {
         assertEquals(config.baseClaims(), ordinary.size(), "1,719 ordinary legit claims");
         assertEquals(1_719, config.baseClaims());
-        assertEquals(1_719 + 200, dataset.claims().size(), "plus the 200 fraud claims of Tasks 13 and 14");
+        assertEquals(2_000, dataset.claims().size(), "plus 200 fraud, 26 noise, 25 near-miss and 30 day-30 claims");
         assertEquals(500, dataset.claims().stream().map(Claim::memberId).distinct().count());
         assertEquals(50, dataset.claims().stream().map(Claim::providerId).distinct().count());
         assertEquals(50, dataset.providers().size());
@@ -130,8 +130,10 @@ class DatasetGeneratorTest {
                     c.providerId().equals(day.providerId()) && c.claimDate().equals(day.date())),
                     day + " holds an ordinary claim");
         }
-        assertTrue(dataset.claims().stream().noneMatch(c -> c.providerId().equals(dataset.day30().providerId())
-                && c.claimDate().equals(dataset.day30().date())), "the 30-claim day stays empty until Task 15");
+        assertTrue(dataset.claims().stream().filter(c -> c.providerId().equals(dataset.day30().providerId())
+                && c.claimDate().equals(dataset.day30().date()))
+                .allMatch(c -> dataset.groundTruth().get(dataset.claims().indexOf(c)).scenario().equals("day_30_claims")),
+                "the 30-claim day holds only its own scenario claims");
         assertNotEquals(dataset.phantomDay().providerId(), dataset.day30().providerId());
     }
 

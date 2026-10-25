@@ -29,10 +29,9 @@ import java.util.TreeSet;
  * Builds the synthetic dataset described in {@code docs/generator-spec.md}. Never uses the engine or its config;
  * all parameters come from {@link GeneratorConfig}, reference data from {@link Catalog}.
  *
- * <p>Implemented so far: providers, members, the reserved scenario days, the ordinary legit claims (including the
- * natural claims of the four band hosts and the chronic follow-ups) (Task 12); duplicate, rapid re-submission,
- * upcoding and unbundling fraud (Task 13); phantom billing, weekend anomaly, diagnosis-procedure mismatch and
- * amount clustering fraud (Task 14); claim ids and ground truth.
+ * <p>Stages: providers, members, the reserved scenario days, the ordinary legit claims (including the natural claims
+ * of the four band hosts and the chronic follow-ups); the eight fraud patterns; legit noise, near misses and the
+ * 30-claim day; claim ids and ground truth. The result always has exactly dataset.total_claims claims.
  */
 public final class DatasetGenerator {
 
@@ -50,6 +49,19 @@ public final class DatasetGenerator {
     static final String STAGE_WEEKEND = "fraud_weekend";
     static final String STAGE_MISMATCH = "fraud_mismatch";
     static final String STAGE_BAND = "fraud_band";
+
+    static final String STAGE_NOISE_BAND = "noise_band";
+    static final String STAGE_NOISE_PHANTOM = "noise_phantom_day";
+    static final String STAGE_NEAR_BAND = "near_miss_band";
+    static final String STAGE_NEAR_RESUBMISSION = "near_miss_resubmission";
+    static final String STAGE_NEAR_SAME_DAY = "near_miss_same_day";
+    static final String STAGE_NEAR_WEEKEND = "near_miss_weekend_surgery";
+    static final String STAGE_NEAR_PARTIAL = "near_miss_partial_bundle";
+    static final String STAGE_NEAR_MILD = "near_miss_mild_amount";
+    static final String STAGE_DAY_30 = "day_30_claims";
+
+    static final String NOISE = "legit_noise";
+    static final String NEAR_MISS = "legit_near_miss";
 
     static final String PHANTOM = "phantom_billing";
     static final String WEEKEND = "weekend_anomaly";
@@ -107,6 +119,20 @@ public final class DatasetGenerator {
         weekendSurgeries(StageRandom.forStage(seed, STAGE_WEEKEND), ctx);
         mismatches(StageRandom.forStage(seed, STAGE_MISMATCH), ctx);
         bandAmounts(StageRandom.forStage(seed, STAGE_BAND), ctx);
+
+        bandNoise(StageRandom.forStage(seed, STAGE_NOISE_BAND), ctx);
+        phantomDayLegit(StageRandom.forStage(seed, STAGE_NOISE_PHANTOM), ctx);
+        nearMissBand(StageRandom.forStage(seed, STAGE_NEAR_BAND), ctx);
+        nearMissResubmission(StageRandom.forStage(seed, STAGE_NEAR_RESUBMISSION), ctx);
+        nearMissSameDay(StageRandom.forStage(seed, STAGE_NEAR_SAME_DAY), ctx);
+        nearMissWeekendSurgery(StageRandom.forStage(seed, STAGE_NEAR_WEEKEND), ctx);
+        nearMissPartialBundle(StageRandom.forStage(seed, STAGE_NEAR_PARTIAL), ctx);
+        nearMissMildAmount(StageRandom.forStage(seed, STAGE_NEAR_MILD), ctx);
+        day30(StageRandom.forStage(seed, STAGE_DAY_30), ctx);
+        if (drafts.size() != config.dataset().totalClaims()) {
+            throw new IllegalStateException("generated " + drafts.size() + " claims, expected "
+                    + config.dataset().totalClaims());
+        }
 
         assignClaimIds(StageRandom.forStage(seed, STAGE_CLAIM_IDS), drafts);
         return output(drafts, providers, members, reservations);
@@ -598,7 +624,7 @@ public final class DatasetGenerator {
                         .map(e -> List.copyOf(template(r, e).procedures()))
                         .orElse(source.procedures);
                 re.date = date;
-                if (!priceFraudClaim(r, re, Long.MAX_VALUE)) {
+                if (!priceCapped(r, re, Long.MAX_VALUE)) {
                     continue;
                 }
                 re.pattern = RESUBMISSION;
@@ -624,7 +650,7 @@ public final class DatasetGenerator {
     }
 
     /** Fresh capped noise; false if no amount below {@code cap} and outside the clustering band was found. */
-    private boolean priceFraudClaim(SplittableRandom r, Draft d, long cap) {
+    private boolean priceCapped(SplittableRandom r, Draft d, long cap) {
         long base = basePrice(d.procedures);
         for (int attempt = 0; attempt < config.maxRedraws(); attempt++) {
             double m = fraudMultiplier(r);
@@ -647,19 +673,7 @@ public final class DatasetGenerator {
      */
     private void upcodes(SplittableRandom r, Context ctx) {
         GeneratorConfig.Upcode cfg = config.upcode();
-        Set<String> hostSignatures = new TreeSet<>();
-        for (BandHost h : config.bandHosts()) {
-            if (h.procedures().size() == 1) {
-                hostSignatures.add(h.procedures().get(0));
-            }
-        }
-        Map<String, List<Draft>> groups = new TreeMap<>();
-        for (Draft d : ctx.drafts) {
-            if (d.pattern.equals("none") && d.procedures.size() == 1 && !hostSignatures.contains(d.procedures.get(0))) {
-                groups.computeIfAbsent(d.procedures.get(0), k -> new ArrayList<>()).add(d);
-            }
-        }
-        groups.values().removeIf(models -> models.size() < cfg.minGroupClaims());
+        Map<String, List<Draft>> groups = largeSingleProcedureGroups(ctx);
         List<String> signatures = new ArrayList<>(groups.keySet());
         Map<String, Integer> used = new TreeMap<>();
 
@@ -722,7 +736,7 @@ public final class DatasetGenerator {
             u.provider = providerFor(r, u.type, ctx);
             u.pattern = UNBUNDLE;
             u.scenario = full ? "unbundle_full" : "unbundle_double_billing";
-            if (!priceFraudClaim(r, u, cfg.amountCap())) {
+            if (!priceCapped(r, u, cfg.amountCap())) {
                 throw new IllegalStateException("no unbundled amount under " + cfg.amountCap() + " for "
                         + bundle.bundleCode());
             }
@@ -768,39 +782,8 @@ public final class DatasetGenerator {
      * members at the reserved clinic on the reserved weekday. The 6 genuine claims of that day come in Task 15.
      */
     private void phantomDay(SplittableRandom r, Context ctx) {
-        ScenarioDay day = ctx.reservations.phantomDay();
-        ProviderProfile clinic = ctx.providers.stream().filter(p -> p.id().equals(day.providerId())).findFirst()
-                .orElseThrow();
-        Set<String> members = new HashSet<>();
-        int w = ctx.isolation();
-        List<CaseMixEntry> entries = config.caseMix().get(ClaimType.OUTPATIENT.name());
-        double[] entryWeights = entries.stream().mapToDouble(CaseMixEntry::weight).toArray();
-        for (int i = 0; i < config.phantomDay().fraudClaims(); i++) {
-            Draft d = new Draft(ctx.drafts.size());
-            d.type = ClaimType.OUTPATIENT;
-            d.provider = clinic;
-            d.date = day.date();
-            boolean placed = false;
-            for (int attempt = 0; attempt < config.maxRedraws() && !placed; attempt++) {
-                CaseMixEntry entry = entries.get(StageRandom.weightedIndex(r, entryWeights));
-                MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
-                if (members.contains(member.id()) || ctx.ledger.countWithin(member.id(), entry.diagnosis(),
-                        day.date().minusDays(w), day.date().plusDays(w)) > 0) {
-                    continue;
-                }
-                d.member = member;
-                d.diagnosis = entry.diagnosis();
-                d.procedures = List.copyOf(template(r, entry).procedures());
-                placed = priceFraudClaim(r, d, Long.MAX_VALUE);
-            }
-            if (!placed) {
-                throw new IllegalStateException("cannot place phantom claim " + i);
-            }
-            d.pattern = PHANTOM;
-            d.scenario = "phantom_day";
-            members.add(d.member.id());
-            ctx.add(d);
-        }
+        scenarioDayClaims(r, ctx, ctx.reservations.phantomDay(), config.phantomDay().fraudClaims(), PHANTOM,
+                "phantom_day");
     }
 
     // ---------------------------------------------------------------- weekend anomaly (R7, D11, Q12, Q13)
@@ -826,7 +809,7 @@ public final class DatasetGenerator {
                 d.provider = hospitals.get(h);
                 d.diagnosis = t.diagnosis();
                 d.procedures = List.copyOf(t.procedures());
-                if (!priceFraudClaim(r, d, Long.MAX_VALUE)) {
+                if (!priceCapped(r, d, Long.MAX_VALUE)) {
                     throw new IllegalStateException("cannot price weekend surgery " + t.procedures());
                 }
                 boolean placed = false;
@@ -885,7 +868,7 @@ public final class DatasetGenerator {
                 m.provider = model.provider;
                 m.diagnosis = model.diagnosis;
                 m.procedures = List.copyOf(procedures);
-                if (priceFraudClaim(r, m, Long.MAX_VALUE)) {
+                if (priceCapped(r, m, Long.MAX_VALUE)) {
                     d = m;
                 }
             }
@@ -931,6 +914,315 @@ public final class DatasetGenerator {
                 ctx.add(d);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- legit noise (D13, Q3, Q7, Q8)
+
+    /** Genuine claims planted in the clustering band: noise.band_legit_claims, evenly over the band hosts. */
+    private void bandNoise(SplittableRandom r, Context ctx) {
+        int perHost = config.noise().bandLegitClaims() / config.bandHosts().size();
+        GeneratorConfig.LongRange range = config.plantedAmountRange();
+        for (BandHost host : config.bandHosts()) {
+            for (int i = 0; i < perHost; i++) {
+                Draft d = hostClaim(r, host, ctx, range.min() + r.nextLong(range.max() - range.min() + 1));
+                d.pattern = NOISE;
+                d.scenario = "band_noise";
+                placeNewClaim(r, d, ctx);
+                ctx.add(d);
+            }
+        }
+    }
+
+    private Draft hostClaim(SplittableRandom r, BandHost host, Context ctx, long amount) {
+        Draft d = new Draft(ctx.drafts.size());
+        d.type = ClaimType.INPATIENT;
+        d.host = host;
+        d.diagnosis = host.diagnosis();
+        d.procedures = List.copyOf(host.procedures());
+        d.provider = providerFor(r, ClaimType.INPATIENT, ctx);
+        d.amount = amount;
+        d.multiplier = (double) amount / basePrice(d.procedures);
+        return d;
+    }
+
+    /** The genuine claims of the phantom day, so that the day totals phantom fraud + phantom_day.legit_claims. */
+    private void phantomDayLegit(SplittableRandom r, Context ctx) {
+        scenarioDayClaims(r, ctx, ctx.reservations.phantomDay(), config.phantomDay().legitClaims(), NOISE,
+                "phantom_day_legit");
+    }
+
+    /**
+     * Outpatient claims of distinct members at a reserved clinic-day, none of whom already has a claim there or a
+     * claim of the same diagnosis within the window. Amount from capped noise.
+     */
+    private void scenarioDayClaims(SplittableRandom r, Context ctx, ScenarioDay day, int count, String pattern,
+                                   String scenario) {
+        ProviderProfile clinic = ctx.providers.stream().filter(p -> p.id().equals(day.providerId())).findFirst()
+                .orElseThrow();
+        Set<String> present = new HashSet<>();
+        for (Draft d : ctx.drafts) {
+            if (d.provider.id().equals(clinic.id()) && d.date.equals(day.date())) {
+                present.add(d.member.id());
+            }
+        }
+        List<CaseMixEntry> entries = config.caseMix().get(ClaimType.OUTPATIENT.name());
+        double[] entryWeights = entries.stream().mapToDouble(CaseMixEntry::weight).toArray();
+        int w = ctx.isolation();
+        for (int i = 0; i < count; i++) {
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = ClaimType.OUTPATIENT;
+            d.provider = clinic;
+            d.date = day.date();
+            boolean placed = false;
+            for (int attempt = 0; attempt < config.maxRedraws() && !placed; attempt++) {
+                CaseMixEntry entry = entries.get(StageRandom.weightedIndex(r, entryWeights));
+                MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
+                if (present.contains(member.id()) || ctx.ledger.countWithin(member.id(), entry.diagnosis(),
+                        day.date().minusDays(w), day.date().plusDays(w)) > 0) {
+                    continue;
+                }
+                d.member = member;
+                d.diagnosis = entry.diagnosis();
+                d.procedures = List.copyOf(template(r, entry).procedures());
+                placed = priceCapped(r, d, Long.MAX_VALUE);
+            }
+            if (!placed) {
+                throw new IllegalStateException("cannot place " + scenario + " claim " + i);
+            }
+            d.pattern = pattern;
+            d.scenario = scenario;
+            present.add(d.member.id());
+            ctx.add(d);
+        }
+    }
+
+    // ---------------------------------------------------------------- near misses (D13, Q7, spec 6.2)
+
+    /**
+     * Amounts just outside the clustering band, inside the band hosts' natural quota: each host's near_miss_claims
+     * alternate below (47,000-47,499) and above (50,000-50,500), noise.near_miss.band_below / band_above in total.
+     */
+    private void nearMissBand(SplittableRandom r, Context ctx) {
+        GeneratorConfig.NearMissDetail detail = config.nearMissDetail();
+        int below = config.noise().nearMiss().bandBelow();
+        int above = config.noise().nearMiss().bandAbove();
+        boolean nextBelow = true;
+        for (BandHost host : config.bandHosts()) {
+            for (int i = 0; i < host.nearMissClaims(); i++) {
+                boolean isBelow = above == 0 || (below > 0 && nextBelow);
+                GeneratorConfig.LongRange range = isBelow ? detail.bandBelowAmount() : detail.bandAboveAmount();
+                Draft d = hostClaim(r, host, ctx, range.min() + r.nextLong(range.max() - range.min() + 1));
+                d.pattern = NEAR_MISS;
+                d.scenario = isBelow ? "near_miss_band_below" : "near_miss_band_above";
+                placeNewClaim(r, d, ctx);
+                ctx.add(d);
+                if (isBelow) {
+                    below--;
+                } else {
+                    above--;
+                }
+                nextBelow = !nextBelow;
+            }
+        }
+    }
+
+    /** A second claim of the same member and diagnosis exactly resubmission_gap (8) days after an isolated one. */
+    private void nearMissResubmission(SplittableRandom r, Context ctx) {
+        int wanted = config.noise().nearMiss().resubmission8Days();
+        int gap = config.nearMissDetail().resubmissionGap();
+        int w = ctx.isolation();
+        int created = 0;
+        for (Draft source : shuffledSources(r, ctx)) {
+            if (created == wanted) {
+                break;
+            }
+            LocalDate date = source.date.plusDays(gap);
+            boolean ok = isolatedSource(source, ctx) && date.getYear() == config.dataset().year()
+                    && !(source.provider.weekdayOnly() && ClaimCsv.isWeekend(date))
+                    && !ctx.reservations.contains(source.provider, date)
+                    && ctx.ledger.countWithin(source.member.id(), source.diagnosis, source.date.minusDays(w),
+                            date.plusDays(w)) == 1;
+            if (!ok) {
+                continue;
+            }
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = source.type;
+            d.provider = source.provider;
+            d.member = source.member;
+            d.diagnosis = source.diagnosis;
+            d.procedures = caseEntry(source.type, source.diagnosis)
+                    .map(e -> List.copyOf(template(r, e).procedures())).orElse(source.procedures);
+            d.date = date;
+            if (!priceCapped(r, d, Long.MAX_VALUE)) {
+                continue;
+            }
+            d.pattern = NEAR_MISS;
+            d.scenario = "near_miss_resubmission_8_days";
+            d.related = source;
+            ctx.usedAsSource.add(source);
+            ctx.add(d);
+            created++;
+        }
+        requireCount("near_miss_resubmission_8_days", created, wanted);
+    }
+
+    /** Same member, provider and date as an isolated claim, but another diagnosis: not a duplicate (R1). */
+    private void nearMissSameDay(SplittableRandom r, Context ctx) {
+        int wanted = config.noise().nearMiss().sameDayOtherDiagnosis();
+        int w = ctx.isolation();
+        int created = 0;
+        for (Draft source : shuffledSources(r, ctx)) {
+            if (created == wanted) {
+                break;
+            }
+            if (!isolatedSource(source, ctx)) {
+                continue;
+            }
+            List<CaseMixEntry> entries = config.caseMix().get(source.type.name()).stream()
+                    .filter(e -> e.diagnosis() != null && !e.diagnosis().equals(source.diagnosis))
+                    .filter(e -> ctx.ledger.countWithin(source.member.id(), e.diagnosis(),
+                            source.date.minusDays(w), source.date.plusDays(w)) == 0)
+                    .toList();
+            if (entries.isEmpty()) {
+                continue;
+            }
+            CaseMixEntry entry = entries.get(StageRandom.weightedIndex(r,
+                    entries.stream().mapToDouble(CaseMixEntry::weight).toArray()));
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = source.type;
+            d.provider = source.provider;
+            d.member = source.member;
+            d.date = source.date;
+            d.diagnosis = entry.diagnosis();
+            d.procedures = List.copyOf(template(r, entry).procedures());
+            if (!priceCapped(r, d, Long.MAX_VALUE)) {
+                continue;
+            }
+            d.pattern = NEAR_MISS;
+            d.scenario = "near_miss_same_day_other_diagnosis";
+            d.related = source;
+            ctx.usedAsSource.add(source);
+            ctx.add(d);
+            created++;
+        }
+        requireCount("near_miss_same_day_other_diagnosis", created, wanted);
+    }
+
+    /** Weekend surgery at a regular hospital, whose weekend share is high: not a weekend anomaly (R7). */
+    private void nearMissWeekendSurgery(SplittableRandom r, Context ctx) {
+        List<ProviderProfile> regular = byTier(ctx.providers, Tier.REGULAR_HOSPITAL);
+        List<LocalDate> weekendDays = allDays.stream().filter(ClaimCsv::isWeekend).toList();
+        List<GeneratorConfig.SurgeryTemplate> templates = config.weekendSurgery().templates();
+        double[] weights = templates.stream().mapToDouble(GeneratorConfig.SurgeryTemplate::weight).toArray();
+        int w = ctx.isolation();
+        for (int i = 0; i < config.noise().nearMiss().weekendSurgeryRegularHospital(); i++) {
+            GeneratorConfig.SurgeryTemplate t = templates.get(StageRandom.weightedIndex(r, weights));
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = ClaimType.INPATIENT;
+            d.provider = StageRandom.pick(r, regular);
+            d.diagnosis = t.diagnosis();
+            d.procedures = List.copyOf(t.procedures());
+            if (!priceCapped(r, d, Long.MAX_VALUE)) {
+                throw new IllegalStateException("cannot price near-miss weekend surgery");
+            }
+            boolean placed = false;
+            for (int attempt = 0; attempt < config.maxRedraws() && !placed; attempt++) {
+                MemberProfile member = ctx.members.get(StageRandom.weightedIndex(r, ctx.memberWeights));
+                LocalDate date = StageRandom.pick(r, weekendDays);
+                if (ctx.ledger.countWithin(member.id(), d.diagnosis, date.minusDays(w), date.plusDays(w)) == 0) {
+                    d.member = member;
+                    d.date = date;
+                    placed = true;
+                }
+            }
+            if (!placed) {
+                throw new IllegalStateException("cannot place near-miss weekend surgery");
+            }
+            d.pattern = NEAR_MISS;
+            d.scenario = "near_miss_weekend_surgery";
+            ctx.add(d);
+        }
+    }
+
+    /** Part of a bundle's components without the rest and without the bundle code: not unbundling (R5). */
+    private void nearMissPartialBundle(SplittableRandom r, Context ctx) {
+        List<GeneratorConfig.SurgeryTemplate> templates = config.nearMissDetail().partialBundleTemplates();
+        for (int i = 0; i < config.noise().nearMiss().partialBundle(); i++) {
+            GeneratorConfig.SurgeryTemplate t = templates.get(i % templates.size());
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = ClaimType.OUTPATIENT;
+            d.diagnosis = t.diagnosis();
+            d.procedures = List.copyOf(t.procedures());
+            d.provider = providerFor(r, ClaimType.OUTPATIENT, ctx);
+            if (!priceCapped(r, d, Long.MAX_VALUE)) {
+                throw new IllegalStateException("cannot price partial-bundle near miss");
+            }
+            d.pattern = NEAR_MISS;
+            d.scenario = "near_miss_partial_bundle";
+            placeNewClaim(r, d, ctx);
+            ctx.add(d);
+        }
+    }
+
+    /**
+     * Single-procedure claims priced at base x U(1.25, 1.28), about +1.7 to +1.9 sigma: close to but usually
+     * under the upcoding threshold. Same target groups as upcoding (large, never a band host).
+     */
+    private void nearMissMildAmount(SplittableRandom r, Context ctx) {
+        GeneratorConfig.DoubleRange factor = config.nearMissDetail().mildAmountFactor();
+        Map<String, List<Draft>> groups = largeSingleProcedureGroups(ctx);
+        List<String> signatures = new ArrayList<>(groups.keySet());
+        for (int i = 0; i < config.noise().nearMiss().mildAmount(); i++) {
+            Draft model = StageRandom.pick(r, groups.get(StageRandom.pick(r, signatures)));
+            Draft d = new Draft(ctx.drafts.size());
+            d.type = model.type;
+            d.provider = model.provider;
+            d.diagnosis = model.diagnosis;
+            d.procedures = model.procedures;
+            boolean priced = false;
+            for (int attempt = 0; attempt < config.maxRedraws() && !priced; attempt++) {
+                double f = factor.min() + r.nextDouble() * (factor.max() - factor.min());
+                long amount = Math.round(basePrice(d.procedures) * f);
+                if (!inBand(amount)) {
+                    d.multiplier = f;
+                    d.amount = amount;
+                    priced = true;
+                }
+            }
+            if (!priced) {
+                throw new IllegalStateException("cannot price mild-amount near miss");
+            }
+            d.pattern = NEAR_MISS;
+            d.scenario = "near_miss_mild_amount";
+            placeNewClaim(r, d, ctx);
+            ctx.add(d);
+        }
+    }
+
+    /** Ordinary single-procedure groups with at least upcode.min_group_claims claims, band hosts excluded. */
+    private Map<String, List<Draft>> largeSingleProcedureGroups(Context ctx) {
+        Set<String> hostSignatures = new TreeSet<>();
+        for (BandHost h : config.bandHosts()) {
+            if (h.procedures().size() == 1) {
+                hostSignatures.add(h.procedures().get(0));
+            }
+        }
+        Map<String, List<Draft>> groups = new TreeMap<>();
+        for (Draft d : ctx.drafts) {
+            if (d.pattern.equals("none") && d.procedures.size() == 1 && !hostSignatures.contains(d.procedures.get(0))) {
+                groups.computeIfAbsent(d.procedures.get(0), k -> new ArrayList<>()).add(d);
+            }
+        }
+        groups.values().removeIf(models -> models.size() < config.upcode().minGroupClaims());
+        return groups;
+    }
+
+    // ---------------------------------------------------------------- the 30-claim day (Q7)
+
+    /** Exactly noise.day_30_claims genuine claims at the reserved clinic on its reserved day: R6 needs > 30. */
+    private void day30(SplittableRandom r, Context ctx) {
+        scenarioDayClaims(r, ctx, ctx.reservations.day30(), config.noise().day30Claims(), NEAR_MISS,
+                "day_30_claims");
     }
 
     private static void requireCount(String pattern, int created, int wanted) {

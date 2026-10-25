@@ -88,6 +88,12 @@ public final class GeneratorConfigLoader {
         if (c.bandHosts().isEmpty() || c.fraudCounts().bandAmount() % c.bandHosts().size() != 0) {
             problems.add("fraud_counts.band_amount must split evenly over the band hosts");
         }
+        if (c.nearMissDetail().resubmissionGap() <= c.resubmission().gapDays().max()) {
+            problems.add("near_miss_detail.resubmission_gap must lie outside the resubmission window");
+        }
+        if (c.noise().bandLegitClaims() % c.bandHosts().size() != 0) {
+            problems.add("noise.band_legit_claims must split evenly over the band hosts");
+        }
         int generic = c.baseClaims() - c.bandHostBaseClaims() - c.chronic().followups();
         if (generic <= 0) {
             problems.add("no room left for generic base claims: " + generic);

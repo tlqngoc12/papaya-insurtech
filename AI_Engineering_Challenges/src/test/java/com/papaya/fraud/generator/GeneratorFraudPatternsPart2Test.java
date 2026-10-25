@@ -59,15 +59,18 @@ class GeneratorFraudPatternsPart2Test {
     }
 
     @Test
-    void phantomDayHasExactlyTwentyFiveFraudClaimsOfDistinctMembersAndNothingElseYet() {
+    void phantomDayHasTwentyFiveFraudClaimsOfDistinctMembersPlusTheSixGenuineOnes() {
         ScenarioDay day = dataset.phantomDay();
         List<Claim> onDay = dataset.claims().stream()
                 .filter(c -> c.providerId().equals(day.providerId()) && c.claimDate().equals(day.date())).toList();
         List<Claim> phantom = ofPattern("phantom_billing");
 
         assertEquals(25, phantom.size());
-        assertEquals(Set.copyOf(phantom), Set.copyOf(onDay), "the reserved day holds only the 25 phantom claims");
-        assertEquals(25, phantom.stream().map(Claim::memberId).distinct().count(), "distinct members");
+        assertEquals(31, onDay.size(), "25 phantom + 6 legit_noise: more than 30");
+        assertTrue(onDay.containsAll(phantom));
+        assertTrue(onDay.stream().filter(c -> !phantom.contains(c))
+                .allMatch(c -> truth.get(c.claimId()).scenario().equals("phantom_day_legit")));
+        assertEquals(31, onDay.stream().map(Claim::memberId).distinct().count(), "distinct members");
         for (Claim c : phantom) {
             assertEquals(ClaimType.OUTPATIENT, c.claimType());
             assertEquals("phantom_day", truth.get(c.claimId()).scenario());
@@ -161,6 +164,6 @@ class GeneratorFraudPatternsPart2Test {
         LoadResult loaded = new ClaimCsvReader(catalog).read(ClaimCsvWriter.toBytes(dataset.claims()));
         assertEquals(List.of(), loaded.rejected());
         assertEquals(List.of(), loaded.warnings());
-        assertEquals(1_919, loaded.claims().size());
+        assertEquals(2_000, loaded.claims().size());
     }
 }

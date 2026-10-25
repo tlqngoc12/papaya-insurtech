@@ -56,9 +56,30 @@ class GeneratedDatasetOverlapReportTest {
             }
         }
         System.out.println("Overlap report, seed 42 (report only, Q4):");
-        System.out.printf("  %-22s %6s %10s %10s%n", "pattern", "claims", "own rule", "2+ rules");
-        perPattern.forEach((pattern, c) -> System.out.printf("  %-22s %6d %10d %10d%n", pattern, c[0], c[1], c[2]));
+        System.out.printf("  %-30s %6s %10s %10s%n", "pattern", "claims", "own rule", "2+ rules");
+        perPattern.forEach((pattern, c) -> System.out.printf("  %-30s %6d %10d %10d%n", pattern, c[0], c[1], c[2]));
         System.out.println("  other rules on fraud claims: " + (otherRules.isEmpty() ? "none" : otherRules));
+
+        // Legit claims per scenario: how many are flagged, and by which rules.
+        Map<String, int[]> legit = new TreeMap<>();
+        Map<String, Map<String, Integer>> legitRules = new TreeMap<>();
+        for (GroundTruthRow row : dataset.groundTruth()) {
+            if (row.isFraud()) {
+                continue;
+            }
+            String key = row.fraudPattern() + " / " + row.scenario();
+            int[] c = legit.computeIfAbsent(key, k -> new int[2]);
+            c[0]++;
+            var flags = scored.get(row.claimId()).flags();
+            if (!flags.isEmpty()) {
+                c[1]++;
+            }
+            flags.forEach(f -> legitRules.computeIfAbsent(key, k -> new TreeMap<>()).merge(f.rule().id(), 1,
+                    Integer::sum));
+        }
+        System.out.printf("  %-52s %6s %8s  %s%n", "legit label / scenario", "claims", "flagged", "rules");
+        legit.forEach((key, c) -> System.out.printf("  %-52s %6d %8d  %s%n", key, c[0], c[1],
+                legitRules.getOrDefault(key, Map.of())));
 
         assertEquals(dataset.claims().size(), result.ranked().size());
     }

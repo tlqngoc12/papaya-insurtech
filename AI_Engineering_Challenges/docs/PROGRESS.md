@@ -19,8 +19,8 @@ Cập nhật lần cuối: 2026-10-25.
 | 11 | Chấm điểm, xếp hạng, `FraudEngine`, subcommand `score`, đo thời gian | done | `e79b499` |
 | 12 | Generator: phần claim hợp lệ, subcommand `generate`, ground truth | done | `f73fa05` |
 | 13 | Generator gian lận (1): duplicate, rapid, upcoding, unbundling | done | `4ad074b` |
-| 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | done | commit "Task 14" (mã điền ở lần cập nhật sau) |
-| 15 | Near-miss và noise | todo | |
+| 14 | Generator gian lận (2): phantom, weekend, mismatch, clustering | done | `08cfdc6` |
+| 15 | Near-miss và noise | done | commit "Task 15" (mã điền ở lần cập nhật sau) |
 | 16 | Metric, subcommand `evaluate` và `tune` | todo | |
 | 17 | Tuning (seed 42) và commit đóng băng `config/frozen-config.json` | todo | |
 | 18 | Held-out (seed 2024) và seed ổn định 101–105 | todo | |
@@ -34,7 +34,9 @@ Commit ngoài kế hoạch:
 
 ## Đang làm
 
-Task 14 đã commit: 155 test xanh. Bắt đầu Task 15.
+Task 15 đã commit: 162 test xanh. Dataset seed 42 đủ 2.000 claim (200 gian lận, 1.800 hợp lệ). Task 16: yêu cầu của người dùng bị cắt ở mục 9, chờ phần còn lại trước khi code.
+
+Báo cáo kiểm tra seed 42 sau Task 15 (chỉ báo cáo, **không** dùng để chỉnh generator, **chưa phải số chính thức**): 256 claim bị flag. Gian lận bị flag bởi đúng rule: 196/200 (upcoding 26/30, phantom 25/25, các pattern khác đủ). Hợp lệ bị flag: 60 = band_noise 20 + phantom_day_legit 6 (đều cố ý) + band_host 7 + base 15 + natural_followup 12. Không near-miss nào bị flag.
 
 Báo cáo kiểm tra seed 42 sau Task 14 (chỉ báo cáo theo Q4, **không** dùng để chỉnh generator), số claim bị flag bởi đúng rule / tổng: duplicate 30/30, rapid 30/30, upcoding 26/30, unbundling 25/25, **phantom 0/25** (ngày phantom mới có 25 claim, chưa vượt 30; Task 15 thêm 6 claim `legit_noise`), weekend 20/20, mismatch 20/20, clustering 20/20. Không claim gian lận nào khớp từ 2 rule trở lên. Claim hợp lệ bị flag: 34 (upcoding 9, rapid 18, clustering 7).
 
@@ -48,9 +50,9 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
 
 ## Việc tiếp theo
 
-1. Hoàn tất Task 13, chờ review.
-2. Task 14: phantom, weekend, mismatch, clustering.
-3. Task 15: noise và near-miss.
+1. Commit Task 15 sau khi được duyệt.
+2. Task 16: metric, lệnh `evaluate` và `tune`.
+3. Task 17: tuning seed 42 và commit đóng băng.
 
 ## Câu hỏi còn mở / chờ quyết
 
@@ -112,6 +114,7 @@ Thời gian đo được ở lần chạy test Task 11 (máy dev, chỉ để th
   - Bản sao duplicate có thể nhận thêm rapid nếu còn claim khác cùng member và chẩn đoán trong cửa sổ: **giữ nguyên rule** (phương án a), xử lý ở generator (xem ràng buộc Task 13).
   - Evidence rapid dùng đúng số ít/số nhiều ("1 earlier claim", "2 earlier claims").
 - 2026-10-25: **Q1 = A** (ghi đè R3, đã ghi vào phụ lục `design-decisions.md`): upcoding chỉ xét claim có đúng một procedure; claim nhiều procedure bị bỏ qua và được đếm.
+- 2026-10-25: Task 15, noise và near-miss: 20 `band_noise` (5 mỗi nhóm), 6 `phantom_day_legit` (ngày phantom đủ 31 claim), 25 near-miss theo 7 scenario (6 claim quanh dải nằm trong quota 32 của nhóm), 30 `day_30_claims`. Tổng đúng 2.000 claim; generator kiểm tra tổng khi kết thúc.
 - 2026-10-25: Task 14, generator gian lận (2): phantom 25 claim tại ngày giữ chỗ (member khác nhau); weekend 20 claim (4 × 3 + 4 × 2) phẫu thuật nội trú cuối tuần tại bệnh viện chỉ làm ngày thường, không P-2009; mismatch 20 claim thay đúng một procedure; clustering 20 claim, 5 mỗi nhóm. Thêm L9 mở rộng (masking giảm cả FP tự nhiên).
 - 2026-10-25: Task 13, generator gian lận (1): duplicate (copy y nguyên, bản sao đứng sau bản gốc), rapid (1–7 ngày, 70% cùng provider, nhiễu mới), upcoding (20 mạnh + 10 nhẹ, ≤ 3 mỗi nhóm, nhóm ≥ 30 claim, không phải nhóm clustering), unbundling (20 đủ thành phần + 5 thanh toán kép). Claim gốc của duplicate/rapid phải "cô lập" (không có claim cùng member + chẩn đoán trong ±7 ngày); claim gian lận mới đặt sao cho không có claim cùng member + chẩn đoán trong ±7 ngày.
 - 2026-10-25: Task 12, generator phần nền: member gán trước chẩn đoán (member mạn tính quyết định chẩn đoán); claim tái khám không đặt ở bệnh viện chỉ làm ngày thường. Spec 4.1 đã cập nhật cho khớp.

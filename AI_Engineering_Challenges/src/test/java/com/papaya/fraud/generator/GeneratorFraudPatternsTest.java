@@ -72,7 +72,9 @@ class GeneratorFraudPatternsTest {
         assertEquals(Map.of("duplicate_claim", 30L, "rapid_resubmission", 30L, "upcoding", 30L, "unbundling", 25L,
                 "phantom_billing", 25L, "weekend_anomaly", 20L, "diagnosis_procedure_mismatch", 20L,
                 "amount_clustering", 20L), fraud);
-        assertTrue(dataset.groundTruth().stream().filter(g -> !g.isFraud()).allMatch(g -> g.fraudPattern().equals("none")));
+        assertTrue(dataset.groundTruth().stream().filter(g -> !g.isFraud())
+                .allMatch(g -> Set.of("none", "legit_noise", "legit_near_miss").contains(g.fraudPattern())),
+                "Q7: legit claims carry none, legit_noise or legit_near_miss");
     }
 
     @Test

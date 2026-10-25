@@ -13,7 +13,12 @@ public record GeneratorConfig(Dataset dataset, Volumes volumes, Chronic chronic,
                               double maxPlantedShare, FraudCounts fraudCounts, Upcode upcode,
                               Resubmission resubmission, Unbundle unbundle, LongRange plantedAmountRange,
                               PhantomDay phantomDay, Noise noise, WeekendSurgery weekendSurgery,
-                              Mismatch mismatch, int maxRedraws) {
+                              Mismatch mismatch, NearMissDetail nearMissDetail, int maxRedraws) {
+
+    /** Parameters of the hard negatives (generator spec 6.2). */
+    public record NearMissDetail(LongRange bandBelowAmount, LongRange bandAboveAmount, int resubmissionGap,
+                                 DoubleRange mildAmountFactor, List<SurgeryTemplate> partialBundleTemplates) {
+    }
 
     /** Weekend anomaly fraud: surgical inpatient templates; some weekday-only hospitals get 3 claims, others 2. */
     public record WeekendSurgery(int hospitalsWithThreeClaims, List<SurgeryTemplate> templates) {
